@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalog — DMS Lite</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f1117'/%3E%3Cpath d='M8 8h16v3H8zm0 6h12v3H8zm0 6h10v3H8z' fill='%234f8ef7'/%3E%3C/svg%3E">
+<style>
+/* ── CSS Variables ────────────────────────────────────────────────────────── */
+:root {
+  --bg:       #0a0d14;
+  --surface:  #111420;
+  --surface2: #181c2a;
+  --border:   #252936;
+  --accent:   #4f8ef7;
+  --accent2:  #7c5cbf;
+  --green:    #34d399;
+  --orange:   #f59e0b;
+  --red:      #ef4444;
+  --text:     #e2e8f0;
+  --muted:    #8892a4;
+  --code-bg:  #1e2130;
+  --radius:   10px;
+  --shadow:   0 4px 24px rgba(0,0,0,.45);
+}
+[data-theme="light"] {
+  --bg:       #f0f2f8;
+  --surface:  #ffffff;
+  --surface2: #f5f7fa;
+  --border:   #d1d5db;
+  --accent:   #2563eb;
+  --accent2:  #7c3aed;
+  --green:    #059669;
+  --orange:   #d97706;
+  --red:      #dc2626;
+  --text:     #1e293b;
+  --muted:    #64748b;
+  --code-bg:  #f1f5f9;
+  --shadow:   0 4px 24px rgba(0,0,0,.10);
+}
+
+/* ── Background canvas ────────────────────────────────────────────────────── */
+#bg-canvas {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  z-index:0; pointer-events:none; display:block;
+}
+
+/* ── Reset ────────────────────────────────────────────────────────────────── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  font-size:14px; line-height:1.6; min-height:100vh;
+}
+.site-header, .page { position:relative; z-index:1; }
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+code { font-family:'Cascadia Code','Fira Code','Consolas',monospace; font-size:.9em;
+       background:var(--code-bg); padding:1px 5px; border-radius:4px; color:var(--accent); }
+pre { background:var(--code-bg); border:1px solid var(--border); border-radius:8px;
+      padding:12px 14px; overflow-x:auto; font-size:12.5px; line-height:1.65; }
+pre code { background:none; padding:0; color:var(--text); }
+
+/* ── Layout ───────────────────────────────────────────────────────────────── */
+.page { max-width:1100px; margin:0 auto; padding:0 24px 60px; }
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.site-header {
+  border-bottom:1px solid var(--border);
+  background:var(--surface); backdrop-filter:blur(12px);
+  position:sticky; top:0; z-index:100;
+}
+.site-header-inner {
+  max-width:1100px; margin:0 auto; padding:0 24px;
+  display:flex; align-items:center; gap:16px; height:56px;
+}
+.site-logo { font-size:22px; flex-shrink:0; }
+.site-title { font-weight:700; font-size:15px; flex:1;
+              letter-spacing:-.01em; color:var(--text); }
+.site-title span { color:var(--accent); }
+.header-nav { display:flex; gap:4px; }
+.header-nav a {
+  font-size:12px; padding:5px 10px; border-radius:6px;
+  color:var(--muted); border:1px solid transparent;
+  transition:all .15s;
+}
+.header-nav a:hover, .header-nav a.active {
+  color:var(--accent); border-color:var(--border); background:var(--surface2);
+  text-decoration:none;
+}
+#theme-btn {
+  background:none; border:1px solid var(--border); border-radius:6px;
+  color:var(--muted); cursor:pointer; font-size:14px; padding:4px 8px;
+  transition:all .15s; flex-shrink:0;
+}
+#theme-btn:hover { color:var(--text); border-color:var(--text); }
+
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
+.hero {
+  padding:52px 0 40px;
+  text-align:center;
+}
+.hero-eyebrow {
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); background:rgba(79,142,247,.1); border:1px solid rgba(79,142,247,.25);
+  padding:4px 12px; border-radius:20px; margin-bottom:18px;
+}
+.hero h1 {
+  font-size:clamp(26px,4vw,42px); font-weight:800; letter-spacing:-.025em;
+  line-height:1.15; margin-bottom:14px; color:var(--text);
+}
+.hero h1 em { font-style:normal; color:var(--accent); }
+.hero p {
+  font-size:16px; color:var(--muted); max-width:520px; margin:0 auto 28px;
+}
+.hero-badges {
+  display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin-bottom:36px;
+}
+.badge {
+  font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600;
+  letter-spacing:.03em;
+}
+.badge-blue  { background:rgba(79,142,247,.15); color:#7ab4ff; border:1px solid rgba(79,142,247,.3); }
+.badge-purple{ background:rgba(124,92,191,.15); color:#b99ef7; border:1px solid rgba(124,92,191,.3); }
+.badge-green { background:rgba(52,211,153,.15); color:#5dd9a8; border:1px solid rgba(52,211,153,.3); }
+.badge-orange{ background:rgba(245,158,11,.12); color:#f9c157; border:1px solid rgba(245,158,11,.3); }
+.badge-gray  { background:rgba(136,146,164,.12); color:var(--muted); border:1px solid var(--border); }
+
+/* ── App Cards ────────────────────────────────────────────────────────────── */
+.app-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:20px; margin-bottom:52px;
+}
+.app-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:28px 24px; display:flex; flex-direction:column; gap:14px;
+  transition:all .2s; position:relative; overflow:hidden;
+}
+.app-card::before {
+  content:''; position:absolute; inset:0; border-radius:var(--radius);
+  opacity:0; transition:opacity .2s; pointer-events:none;
+}
+.app-card.blue::before  { background:linear-gradient(135deg,rgba(79,142,247,.06),transparent 60%); }
+.app-card.purple::before{ background:linear-gradient(135deg,rgba(124,92,191,.07),transparent 60%); }
+.app-card.orange::before{ background:linear-gradient(135deg,rgba(245,158,11,.06),transparent 60%); }
+.app-card:hover { border-color:var(--accent); box-shadow:var(--shadow); transform:translateY(-2px); }
+.app-card:hover::before { opacity:1; }
+.app-card.blue:hover  { border-color:#4f8ef7; }
+.app-card.purple:hover{ border-color:#7c5cbf; }
+.app-card.orange:hover{ border-color:#f59e0b; }
+.card-icon {
+  width:48px; height:48px; border-radius:12px; display:flex; align-items:center;
+  justify-content:center; font-size:22px; flex-shrink:0;
+}
+.card-icon.blue  { background:rgba(79,142,247,.15); }
+.card-icon.purple{ background:rgba(124,92,191,.15); }
+.card-icon.orange{ background:rgba(245,158,11,.12); }
+.app-card-header { display:flex; align-items:flex-start; gap:14px; }
+.app-card-meta { flex:1; }
+.app-card-title { font-size:16px; font-weight:700; color:var(--text); margin-bottom:2px; }
+.app-card-subtitle { font-size:12px; color:var(--muted); }
+.app-card-body { font-size:13px; color:var(--muted); line-height:1.55; }
+.app-card-tags { display:flex; flex-wrap:wrap; gap:6px; }
+.app-card-footer { margin-top:auto; padding-top:14px; border-top:1px solid var(--border);
+                   display:flex; align-items:center; justify-content:space-between; }
+.app-card-footer .tag { font-size:11px; color:var(--muted); }
+.launch-btn {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:7px 16px; border-radius:7px; font-size:12px; font-weight:600;
+  border:none; cursor:pointer; transition:all .15s; text-decoration:none;
+}
+.launch-btn.blue   { background:var(--accent); color:#fff; }
+.launch-btn.blue:hover   { background:#3a7de8; text-decoration:none; }
+.launch-btn.purple { background:var(--accent2); color:#fff; }
+.launch-btn.purple:hover { background:#6a49b0; text-decoration:none; }
+.launch-btn.disabled {
+  background:var(--border); color:var(--muted); cursor:not-allowed; opacity:.7;
+}
+.coming-soon-ribbon {
+  position:absolute; top:14px; right:-22px;
+  background:var(--orange); color:#000; font-size:9.5px; font-weight:700;
+  padding:3px 28px; transform:rotate(35deg); letter-spacing:.06em; text-transform:uppercase;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+.tabs-wrapper { background:var(--surface); border:1px solid var(--border);
+                border-radius:var(--radius); overflow:hidden; }
+.tab-bar {
+  display:flex; border-bottom:1px solid var(--border); padding:0 20px;
+  background:var(--surface2);
+}
+.tab-btn {
+  padding:12px 18px; font-size:13px; font-weight:600; cursor:pointer;
+  color:var(--muted); border:none; background:none;
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+  transition:all .15s; white-space:nowrap;
+}
+.tab-btn:hover { color:var(--text); }
+.tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+.tab-panel { display:none; padding:28px 28px; }
+.tab-panel.active { display:block; }
+
+/* ── Tools grid ───────────────────────────────────────────────────────────── */
+.tools-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; }
+.tool-card {
+  background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+  padding:18px 20px;
+}
+.tool-card-name { font-size:13px; font-weight:700; color:var(--text); margin-bottom:4px;
+                   display:flex; align-items:center; gap:8px; }
+.tool-card-desc { font-size:12.5px; color:var(--muted); margin-bottom:10px; line-height:1.5; }
+.tool-features { list-style:none; display:flex; flex-direction:column; gap:3px; }
+.tool-features li { font-size:12px; color:var(--muted); padding-left:14px; position:relative; }
+.tool-features li::before { content:'›'; position:absolute; left:0; color:var(--accent); }
+
+/* ── API table ────────────────────────────────────────────────────────────── */
+.api-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+.api-table th {
+  text-align:left; padding:8px 14px; font-size:11px; font-weight:600;
+  letter-spacing:.05em; text-transform:uppercase; color:var(--muted);
+  border-bottom:1px solid var(--border); background:var(--surface2);
+}
+.api-table td {
+  padding:9px 14px; border-bottom:1px solid var(--border); vertical-align:top;
+}
+.api-table tr:last-child td { border-bottom:none; }
+.api-table tr:hover td { background:var(--surface2); }
+.method {
+  font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:4px;
+  letter-spacing:.04em; white-space:nowrap;
+}
+.method-get  { background:rgba(52,211,153,.15); color:#5dd9a8; }
+.method-post { background:rgba(245,158,11,.15); color:#f9c157; }
+.api-endpoint { font-family:'Cascadia Code','Fira Code',monospace; color:var(--text); font-size:12px; }
+.api-params { color:var(--muted); font-size:11.5px; line-height:1.5; }
+
+/* ── Scripts section ──────────────────────────────────────────────────────── */
+.script-list { display:flex; flex-direction:column; gap:12px; }
+.script-item {
+  background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+  overflow:hidden;
+}
+.script-header {
+  display:flex; align-items:flex-start; gap:14px; padding:14px 18px;
+  cursor:pointer; user-select:none;
+}
+.script-header:hover { background:rgba(79,142,247,.04); }
+.script-icon { font-size:18px; flex-shrink:0; margin-top:1px; }
+.script-meta { flex:1; min-width:0; }
+.script-name { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; }
+.script-files { font-size:11.5px; color:var(--accent); font-family:monospace; }
+.script-brief { font-size:12.5px; color:var(--muted); }
+.script-arrow { font-size:12px; color:var(--muted); margin-top:3px; flex-shrink:0;
+                transition:transform .2s; }
+.script-item.open .script-arrow { transform:rotate(90deg); }
+.script-detail { display:none; padding:0 18px 16px; border-top:1px solid var(--border); }
+.script-item.open .script-detail { display:block; }
+.script-desc { font-size:13px; color:var(--muted); margin:12px 0 10px; line-height:1.55; }
+.cmd-block { position:relative; }
+.cmd-block pre { padding-right:60px; }
+.copy-btn {
+  position:absolute; top:8px; right:8px; background:var(--border);
+  border:none; border-radius:5px; color:var(--muted); cursor:pointer;
+  font-size:11px; padding:3px 8px; transition:all .15s;
+}
+.copy-btn:hover { background:var(--accent); color:#fff; }
+.divider { height:1px; background:var(--border); margin:20px 0; }
+.section-label {
+  font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:12px;
+}
+
+/* ── Setup tab ────────────────────────────────────────────────────────────── */
+.setup-steps { display:flex; flex-direction:column; gap:16px; }
+.setup-step {
+  display:flex; gap:16px; align-items:flex-start;
+}
+.step-num {
+  width:28px; height:28px; border-radius:50%; background:var(--accent);
+  color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center;
+  justify-content:center; flex-shrink:0; margin-top:2px;
+}
+.step-body h4 { font-size:13px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.step-body p  { font-size:12.5px; color:var(--muted); margin-bottom:8px; }
+
+/* ── OCR feature highlight ────────────────────────────────────────────────── */
+.ocr-features {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;
+  margin:14px 0;
+}
+.ocr-feature {
+  background:var(--code-bg); border:1px solid var(--border); border-radius:7px;
+  padding:12px 14px;
+}
+.ocr-feature-icon { font-size:18px; margin-bottom:6px; }
+.ocr-feature-name { font-size:12px; font-weight:700; color:var(--text); margin-bottom:3px; }
+.ocr-feature-desc { font-size:11.5px; color:var(--muted); }
+.engines-table { font-size:12.5px; margin:14px 0; }
+.engines-table th { color:var(--muted); font-size:11px; text-transform:uppercase;
+                     letter-spacing:.05em; font-weight:600; padding:6px 12px;
+                     border-bottom:1px solid var(--border); text-align:left; }
+.engines-table td { padding:8px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+.engines-table tr:last-child td { border-bottom:none; }
+.coming-soon-tag {
+  display:inline-block; font-size:10px; font-weight:700; padding:2px 8px;
+  border-radius:20px; background:rgba(245,158,11,.15); color:var(--orange);
+  border:1px solid rgba(245,158,11,.3); letter-spacing:.05em; text-transform:uppercase;
+  vertical-align:middle; margin-left:8px;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+.site-footer {
+  border-top:1px solid var(--border); margin-top:60px; padding:20px 0;
+  text-align:center; font-size:12px; color:var(--muted);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width:600px) {
+  .page { padding:0 14px 40px; }
+  .hero { padding:32px 0 24px; }
+  .tab-panel { padding:20px 16px; }
+  .app-grid { grid-template-columns:1fr; }
+  .tab-bar { overflow-x:auto; }
+}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+
+<!-- ══ HEADER ═══════════════════════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="site-header-inner">
+    <span class="site-logo">🗂️</span>
+    <span class="site-title">Catalog <span>DMS Lite</span></span>
+    <nav class="header-nav">
+      <a href="#apps">Apps</a>
+      <a href="#tools-tab" onclick="switchTab('tools')">Tools</a>
+      <a href="#tools-tab" onclick="switchTab('scripts')">Scripts</a>
+      <a href="#tools-tab" onclick="switchTab('setup')">Setup</a>
+    </nav>
+    <button id="theme-btn" onclick="toggleTheme()" title="Toggle theme">☀</button>
+  </div>
+</header>
+
+<div class="page">
+
+<!-- ══ HERO ═════════════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-eyebrow">⚡ Local AI · Elasticsearch · Flask</div>
+  <h1>Search, Ask, <em>Extract</em>.<br>Your documents, fully indexed.</h1>
+  <p>A local-first Document Management System to index, organize, search, and query any document collection using full-text search, semantic embeddings, and local AI models.</p>
+  <div class="hero-badges">
+    <span class="badge badge-blue">BM25 + kNN Hybrid</span>
+    <span class="badge badge-purple">RAG / Ollama</span>
+    <span class="badge badge-green">Multi-language</span>
+    <span class="badge badge-blue">PDF · MP4 · SRT · DOCX</span>
+    <span class="badge badge-gray">Python 3.9+ · No cloud</span>
+  </div>
+</section>
+
+<!-- ══ APP CARDS ════════════════════════════════════════════════════════════ -->
+<section class="app-grid" id="apps">
+
+  <!-- Search Console -->
+  <div class="app-card blue">
+    <div class="app-card-header">
+      <div class="card-icon blue">🔍</div>
+      <div class="app-card-meta">
+        <div class="app-card-title">Search Console</div>
+        <div class="app-card-subtitle">frontend/search-console.html</div>
+      </div>
+    </div>
+    <div class="app-card-body">
+      Full-text, semantic, hybrid, and filename search across your indexed documents. Supports BM25 with fuzzy matching, kNN vector search, and cross-lingual queries.
+    </div>
+    <div class="app-card-tags">
+      <span class="badge badge-blue">BM25</span>
+      <span class="badge badge-purple">Semantic kNN</span>
+      <span class="badge badge-blue">Hybrid</span>
+      <span class="badge badge-green">RAG Ask</span>
+    </div>
+    <div class="app-card-footer">
+      <span class="tag">Requires backend + Elasticsearch</span>
+      <a href="frontend/search-console.html" class="launch-btn blue">Open →</a>
+    </div>
+  </div>
+
+  <!-- AI Chat -->
+  <div class="app-card purple">
+    <div class="app-card-header">
+      <div class="card-icon purple">💬</div>
+      <div class="app-card-meta">
+        <div class="app-card-title">AI Chat</div>
+        <div class="app-card-subtitle">frontend/chat.html</div>
+      </div>
+    </div>
+    <div class="app-card-body">
+      Multi-turn conversational interface for asking questions about your document library. Retrieves relevant chunks via Elasticsearch and generates grounded answers using a local Ollama model.
+    </div>
+    <div class="app-card-tags">
+      <span class="badge badge-purple">RAG</span>
+      <span class="badge badge-purple">Ollama</span>
+      <span class="badge badge-blue">Streaming SSE</span>
+      <span class="badge badge-green">Citations</span>
+    </div>
+    <div class="app-card-footer">
+      <span class="tag">Requires backend + Ollama</span>
+      <a href="frontend/chat.html" class="launch-btn purple">Open →</a>
+    </div>
+  </div>
+
+  <!-- OCR Extract -->
+  <div class="app-card orange">
+    <div class="app-card-header">
+      <div class="card-icon orange">📄</div>
+      <div class="app-card-meta">
+        <div class="app-card-title">OCR Extract</div>
+        <div class="app-card-subtitle">frontend/ocr-extract.html</div>
+      </div>
+    </div>
+    <div class="app-card-body">
+      Upload PDFs or images and extract their text content using open-source OCR engines (Tesseract, EasyOCR, PaddleOCR) or AI vision models via Ollama. Supports multi-page PDFs, custom page ranges, and Markdown output.
+    </div>
+    <div class="app-card-tags">
+      <span class="badge badge-orange">PyMuPDF</span>
+      <span class="badge badge-orange">Tesseract</span>
+      <span class="badge badge-orange">EasyOCR</span>
+      <span class="badge badge-orange">AI Vision</span>
+      <span class="badge badge-gray">PDF · PNG · JPEG · BMP · TIFF</span>
+    </div>
+    <div class="app-card-footer">
+      <span class="tag">Requires backend</span>
+      <a href="frontend/ocr-extract.html" class="launch-btn" style="background:var(--orange);color:#000">Open →</a>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══ TABS ══════════════════════════════════════════════════════════════════ -->
+<div class="tabs-wrapper" id="tools-tab">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('tools',this)">Tools &amp; APIs</button>
+    <button class="tab-btn"        onclick="switchTab('scripts',this)">Scripts &amp; CLI</button>
+    <button class="tab-btn"        onclick="switchTab('setup',this)">Quick Setup</button>
+  </div>
+
+  <!-- ─── Tools & APIs ─────────────────────────────────────────────────── -->
+  <div class="tab-panel active" id="panel-tools">
+
+    <div class="section-label">Existing Tools</div>
+    <div class="tools-grid">
+
+      <div class="tool-card">
+        <div class="tool-card-name">🔍 Search Console</div>
+        <div class="tool-card-desc">Interactive Elasticsearch testing console with all search modes, SRT timestamp browser, file viewer, analytics dashboard, and RAG "Ask" panel.</div>
+        <ul class="tool-features">
+          <li>BM25 · Semantic (kNN) · Hybrid · Filename modes</li>
+          <li>Fuzzy, phrase, boolean, and wildcard queries</li>
+          <li>Cross-lingual search with query translation</li>
+          <li>SRT subtitle viewer with timestamp navigation</li>
+          <li>Streamed AI answers with source citations</li>
+        </ul>
+      </div>
+
+      <div class="tool-card">
+        <div class="tool-card-name">💬 AI Chat</div>
+        <div class="tool-card-desc">Conversational multi-turn interface powered by Retrieval-Augmented Generation. Maintains conversation history and cites source documents for every answer.</div>
+        <ul class="tool-features">
+          <li>Multi-turn conversation with context memory</li>
+          <li>Streams token-by-token via Server-Sent Events</li>
+          <li>Collapsible source chunk citations with scores</li>
+          <li>Model selector (any Ollama model)</li>
+          <li>Language selector for cross-lingual retrieval</li>
+        </ul>
+      </div>
+
+      <div class="tool-card" style="border-color:rgba(245,158,11,.35)">
+        <div class="tool-card-name">📄 OCR Extract <span class="coming-soon-tag">Coming Soon</span></div>
+        <div class="tool-card-desc">Python Flask endpoint <code>/api/ocr</code> with a drag-and-drop HTML interface. Upload PDFs or images and extract text with confidence scores.</div>
+        <ul class="tool-features">
+          <li>PDF (multi-page), JPEG, PNG, TIFF, WebP, BMP</li>
+          <li>Engine choice: Tesseract · EasyOCR · PaddleOCR</li>
+          <li>AI Vision via Ollama (llava, qwen2-vl, moondream)</li>
+          <li>Layout detection: paragraphs, tables, captions</li>
+          <li>Table extraction to Markdown / CSV</li>
+          <li>Per-word confidence scores and bounding boxes</li>
+          <li>Batch mode + index into Elasticsearch</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">Backend API Endpoints</div>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Description &amp; Parameters</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="api-endpoint">/api/health</td>
+          <td class="api-params">System status: backend, Elasticsearch, Ollama. Returns JSON with service states and available models.</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="api-endpoint">/api/search</td>
+          <td class="api-params"><code>q</code> query · <code>mode</code> bm25|semantic|hybrid|filename · <code>lang</code> en|de|es|auto · <code>size</code> results · <code>ext</code> file filter</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="api-endpoint">/api/es-search</td>
+          <td class="api-params">Elasticsearch-native search with BM25, kNN, hybrid modes, fuzzy matching, and SRT timestamp support.</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="api-endpoint">/api/ask</td>
+          <td class="api-params">RAG pipeline — streams answer via SSE. Body: <code>{"q":"…","model":"llama3","lang":"auto","history":[…]}</code></td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="api-endpoint">/api/ollama-models</td>
+          <td class="api-params">List all locally available Ollama models with sizes and parameter counts.</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="api-endpoint">/api/file-text</td>
+          <td class="api-params"><code>path</code> — extract and return plain text from any indexed file (PDF, DOCX, MP4 subtitle, etc.).</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="api-endpoint">/api/analytics</td>
+          <td class="api-params">Corpus-wide aggregations: file type distribution, language breakdown, top terms, indexing timeline.</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="api-endpoint">/api/translate-status</td>
+          <td class="api-params">Translation worker progress: queued / in-progress / completed documents per language pair.</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="api-endpoint">/api/ocr <span class="coming-soon-tag">Soon</span></td>
+          <td class="api-params">Upload PDF or image → extract text via selected OCR engine. Returns structured JSON with pages, confidence, and detected tables.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="divider"></div>
+    <div class="section-label">OCR Extract — Engine Comparison</div>
+    <table class="engines-table api-table">
+      <thead>
+        <tr><th>Engine</th><th>Type</th><th>Languages</th><th>Best For</th><th>Requires</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Tesseract</strong></td>
+          <td><span class="badge badge-blue">Open-source</span></td>
+          <td>100+</td>
+          <td>Clean scanned documents, typed text</td>
+          <td><code>tesseract-ocr</code> system package</td>
+        </tr>
+        <tr>
+          <td><strong>EasyOCR</strong></td>
+          <td><span class="badge badge-green">Neural net</span></td>
+          <td>80+</td>
+          <td>Mixed layouts, printed text in photos</td>
+          <td><code>pip install easyocr</code> (~1 GB model)</td>
+        </tr>
+        <tr>
+          <td><strong>PaddleOCR</strong></td>
+          <td><span class="badge badge-green">State-of-art</span></td>
+          <td>80+</td>
+          <td>Tables, complex layouts, dense text</td>
+          <td><code>pip install paddleocr paddlepaddle</code></td>
+        </tr>
+        <tr>
+          <td><strong>AI Vision (Ollama)</strong></td>
+          <td><span class="badge badge-purple">LLM</span></td>
+          <td>Any</td>
+          <td>Handwriting, diagrams, semantic understanding</td>
+          <td>Ollama + vision model (llava, qwen2-vl)</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+
+  <!-- ─── Scripts & CLI ─────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="panel-scripts">
+
+    <div class="section-label">Launchers</div>
+    <div class="script-list">
+
+      <div class="script-item open">
+        <div class="script-header" onclick="toggleScript(this)">
+          <span class="script-icon">🚀</span>
+          <div class="script-meta">
+            <div class="script-name">Startup Launcher</div>
+            <div class="script-files">launcher.py &nbsp;·&nbsp; start.sh &nbsp;·&nbsp; start.bat</div>
+          </div>
+          <div class="script-brief">Opens browser startup screen, checks services, starts backend automatically.</div>
+          <span class="script-arrow">›</span>
+        </div>
+        <div class="script-detail">
+          <p class="script-desc">Opens a visual startup progress screen in the browser, installs Python dependencies if missing, checks Elasticsearch and Ollama availability, then starts the Flask backend. All platforms — no terminal knowledge required.</p>
+          <div class="cmd-block">
+<pre><code># Double-click or run from terminal:
+
+# Windows
+start.bat
+
+# Linux / macOS
+./start.sh
+
+# Direct Python (any platform)
+python3 launcher.py
+
+# Options
+python3 launcher.py --backend-port 8080
+python3 launcher.py --no-browser
+python3 launcher.py --no-install</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-item">
+        <div class="script-header" onclick="toggleScript(this)">
+          <span class="script-icon">⚡</span>
+          <div class="script-meta">
+            <div class="script-name">Dev Environment Setup</div>
+            <div class="script-files">setup-dev.py &nbsp;·&nbsp; setup-dev.sh &nbsp;·&nbsp; setup-dev.bat</div>
+          </div>
+          <div class="script-brief">Full stack: Docker + Elasticsearch + indexing + Flask.</div>
+          <span class="script-arrow">›</span>
+        </div>
+        <div class="script-detail">
+          <p class="script-desc">Starts Docker, launches an Elasticsearch container, indexes a directory (interactive or from CLI), starts the Flask backend, optionally sets up Ollama, and opens the Search Console in the browser.</p>
+          <div class="cmd-block">
+<pre><code># Interactive
+python3 setup-dev.py
+
+# Index directory (incremental)
+python3 setup-dev.py /path/to/courses
+
+# Wipe index + full reindex
+python3 setup-dev.py --reset /path/to/courses
+
+# Filter by file type
+python3 setup-dev.py --ext pdf,srt /path/to/courses
+
+# Windows / Linux wrappers accept the same arguments
+setup-dev.bat --reset "C:\Courses"
+./setup-dev.sh --reset /path/to/courses</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">Core Components</div>
+    <div class="script-list">
+
+      <div class="script-item">
+        <div class="script-header" onclick="toggleScript(this)">
+          <span class="script-icon">🗂️</span>
+          <div class="script-meta">
+            <div class="script-name">Catalog Generator</div>
+            <div class="script-files">catalog_generator.py</div>
+          </div>
+          <div class="script-brief">Scans a directory and produces course_catalog.md + .html</div>
+          <span class="script-arrow">›</span>
+        </div>
+        <div class="script-detail">
+          <p class="script-desc">Recursively scans a documents directory and generates a structured Markdown and HTML catalog listing all videos, PDFs, documents, subtitles, and media files organized by folder.</p>
+          <div class="cmd-block">
+<pre><code>python3 catalog_generator.py /path/to/courses
+python3 catalog_generator.py /path/to/courses --output ./output</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-item">
+        <div class="script-header" onclick="toggleScript(this)">
+          <span class="script-icon">🌐</span>
+          <div class="script-meta">
+            <div class="script-name">Backend Server</div>
+            <div class="script-files">catalog_server.py</div>
+          </div>
+          <div class="script-brief">Flask REST API — search, RAG, file viewer, analytics</div>
+          <span class="script-arrow">›</span>
+        </div>
+        <div class="script-detail">
+          <p class="script-desc">Lightweight Flask server that powers search, RAG answer streaming, Elasticsearch integration, file text extraction, analytics aggregations, and translation status. Runs on port 5000.</p>
+          <div class="cmd-block">
+<pre><code>python3 catalog_server.py --path /path/to/courses
+python3 catalog_server.py --path /path1;/path2   # multiple roots
+python3 catalog_server.py --port 8080            # custom port</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-item">
+        <div class="script-header" onclick="toggleScript(this)">
+          <span class="script-icon">📥</span>
+          <div class="script-meta">
+            <div class="script-name">Document Indexer</div>
+            <div class="script-files">es_indexer.py</div>
+          </div>
+          <div class="script-brief">Index documents into Elasticsearch with BM25 + kNN vectors</div>
+          <span class="script-arrow">›</span>
+        </div>
+        <div class="script-detail">
+          <p class="script-desc">Extracts text from PDF, DOCX, XLSX, PPTX, SRT/VTT, MP4 (via subtitles), JSON, CSV, and plain text files. Generates kNN embeddings via a local sentence-transformer model. Supports incremental indexing using SHA-256 hashes to skip unchanged files.</p>
+          <div class="cmd-block">
+<pre><code># Incremental (add new / changed files only)
+python3 es_indexer.py --path /path/to/courses
+
+# Full reindex
+python3 es_indexer.py --path /path --reset
+
+# Without semantic vectors (faster, smaller index)
+python3 es_indexer.py --path /path --reset --no-vectors
+
+# Filter by file type
+python3 es_indexer.py --path /path --ext pdf,srt,md</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-item">
+        <div class="script-header" onclick="toggleScript(this)">
+          <span class="script-icon">📊</span>
+          <div class="script-meta">
+            <div class="script-name">Index Status</div>
+            <div class="script-files">es_status.py</div>
+          </div>
+          <div class="script-brief">Print a summary of what is indexed in Elasticsearch</div>
+          <span class="script-arrow">›</span>
+        </div>
+        <div class="script-detail">
+          <p class="script-desc">Connects to Elasticsearch and displays a breakdown of indexed documents by file type, language, index size, last-modified timestamps, and vector coverage.</p>
+          <div class="cmd-block">
+<pre><code>python3 es_status.py
+python3 es_status.py --es-url http://127.0.0.1:9200 --index course_catalog</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">Background Workers</div>
+    <div class="script-list">
+
+      <div class="script-item">
+        <div class="script-header" onclick="toggleScript(this)">
+          <span class="script-icon">🌍</span>
+          <div class="script-meta">
+            <div class="script-name">Translation Worker</div>
+            <div class="script-files">translation_worker.py</div>
+          </div>
+          <div class="script-brief">Daemon: translate documents to a canonical language via Ollama</div>
+          <span class="script-arrow">›</span>
+        </div>
+        <div class="script-detail">
+          <p class="script-desc">Background daemon that detects the language of each indexed document and translates it to the configured <code>CANONICAL_LANGUAGE</code> (env.py). Uses Ollama with exponential backoff, writes <code>canonical_content</code> field into Elasticsearch for cross-lingual search.</p>
+          <div class="cmd-block">
+<pre><code>python3 translation_worker.py
+# Progress is written to translation_status.json
+# Configure in env.py: CANONICAL_LANGUAGE, TRANSLATION_MODEL</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-item">
+        <div class="script-header" onclick="toggleScript(this)">
+          <span class="script-icon">🧠</span>
+          <div class="script-meta">
+            <div class="script-name">Analytics Worker</div>
+            <div class="script-files">analytics_worker.py</div>
+          </div>
+          <div class="script-brief">LLM auto-summarization, discourse metrics, NER tagging</div>
+          <span class="script-arrow">›</span>
+        </div>
+        <div class="script-detail">
+          <p class="script-desc">Reads indexed documents, generates a one-paragraph AI summary (<code>doc_summary</code> field) using Ollama, computes discourse metrics (lexical richness, personal pronoun distribution), and optionally runs spaCy NER to extract named entities.</p>
+          <div class="cmd-block">
+<pre><code>python3 analytics_worker.py
+# Progress written to analytics_status.json</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">Utilities</div>
+    <div class="script-list">
+
+      <div class="script-item">
+        <div class="script-header" onclick="toggleScript(this)">
+          <span class="script-icon">🤖</span>
+          <div class="script-meta">
+            <div class="script-name">Ollama Setup</div>
+            <div class="script-files">ollama_setup.py</div>
+          </div>
+          <div class="script-brief">Detect hardware, recommend and pull Ollama models</div>
+          <span class="script-arrow">›</span>
+        </div>
+        <div class="script-detail">
+          <p class="script-desc">Detects CPU, RAM, GPU (NVIDIA CUDA / AMD ROCm / Apple Silicon) and recommends the best Ollama model for your hardware. Provides an interactive wizard to install Ollama and pull the recommended LLM and embedding models.</p>
+          <div class="cmd-block">
+<pre><code>python3 ollama_setup.py            # interactive wizard
+python3 ollama_setup.py --json     # machine-readable hardware profile</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-item">
+        <div class="script-header" onclick="toggleScript(this)">
+          <span class="script-icon">🧪</span>
+          <div class="script-meta">
+            <div class="script-name">Test Runner</div>
+            <div class="script-files">run_tests.py</div>
+          </div>
+          <div class="script-brief">End-to-end validation: search quality, RAG accuracy, edge cases</div>
+          <span class="script-arrow">›</span>
+        </div>
+        <div class="script-detail">
+          <p class="script-desc">Runs four test suites against a live backend: <strong>9a</strong> cross-lingual language agnosticism, <strong>9b</strong> RAG answer quality, <strong>9c</strong> search mode comparison (BM25 vs semantic vs hybrid), <strong>9d</strong> edge cases (empty query, special chars, very long query). Results saved to <code>docs/test_results.md</code>.</p>
+          <div class="cmd-block">
+<pre><code># Requires catalog_server.py running first
+python3 run_tests.py               # all tests
+python3 run_tests.py --no-rag      # skip RAG (faster)
+python3 run_tests.py --test 9a     # single suite</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ─── Quick Setup ───────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="panel-setup">
+
+    <div class="section-label">Option A — Native (No Docker)</div>
+    <div class="setup-steps">
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Run the native launcher</h4>
+          <p>Creates a virtual environment, installs dependencies, generates the catalog, and starts the Flask server. All in one command.</p>
+          <div class="cmd-block">
+<pre><code>python3 start.py "/path/to/your/courses"</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Open the application</h4>
+          <p>The backend runs at <code>http://localhost:5000</code>. The hub page opens automatically, or navigate to <code>http://localhost:5000/</code> in your browser.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">Option B — Full Stack (Elasticsearch + AI)</div>
+    <div class="setup-steps">
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Install Docker Desktop</h4>
+          <p>Required for the Elasticsearch container. <a href="https://www.docker.com/products/docker-desktop/" target="_blank">docker.com/products/docker-desktop</a></p>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Run the dev setup script</h4>
+          <p>Starts Docker, Elasticsearch, indexes your courses, sets up Ollama, and opens the Search Console.</p>
+          <div class="cmd-block">
+<pre><code>python3 setup-dev.py "/path/to/your/courses"</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Install Ollama (optional, for AI Chat)</h4>
+          <p>The setup script will offer to run the Ollama wizard automatically, or run it manually:</p>
+          <div class="cmd-block">
+<pre><code>python3 ollama_setup.py</code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>Open the Search Console or AI Chat</h4>
+          <p>Both are now accessible above. The Search Console also has an inline "Ask" panel for quick RAG queries.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">Configuration — env.py</div>
+    <div class="cmd-block" style="margin-bottom:0">
+<pre><code># env.py — edit before running the backend
+SEARCH_BASE_PATH  = "/path/to/courses"    # one or more paths separated by ;
+ES_URL            = "http://127.0.0.1:9200"
+CANONICAL_LANGUAGE = "en"                 # translate everything to English
+TRANSLATION_MODEL  = "llama3"             # Ollama model for translation
+OLLAMA_URL         = "http://localhost:11434"</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /.page -->
+
+<footer class="site-footer">
+  <div>Catalog — DMS Lite · Local-first document management, search and AI Q&amp;A</div>
+</footer>
+
+<script>
+// ── Theme ──────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('theme-btn').textContent = isDark ? '🌙' : '☀';
+  localStorage.setItem('cc-theme', isDark ? 'light' : 'dark');
+}
+(function() {
+  const saved = localStorage.getItem('cc-theme');
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('theme-btn').textContent = saved === 'dark' ? '☀' : '🌙';
+  }
+})();
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else {
+    const idx = {tools:0, scripts:1, setup:2}[id];
+    document.querySelectorAll('.tab-btn')[idx]?.classList.add('active');
+  }
+  document.getElementById('tools-tab').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// ── Accordion scripts ──────────────────────────────────────────────────────
+function toggleScript(header) {
+  header.closest('.script-item').classList.toggle('open');
+}
+
+// ── Copy code ──────────────────────────────────────────────────────────────
+function copyCode(btn) {
+  const code = btn.closest('.cmd-block').querySelector('pre').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+  });
+}
+</script>
+
+<!-- ══ PARTICLE NETWORK BACKGROUND (Canvas 2D — sin dependencias) ═══════════ -->
+<script>
+(function () {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx    = canvas.getContext('2d');
+
+  const COUNT    = 90;
+  const MAX_DIST = 140; // px
+  let W, H, dpr;
+  const pts = [];
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W   = window.innerWidth;
+    H   = window.innerHeight;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    ctx.scale(dpr, dpr);
+  }
+
+  function init() {
+    pts.length = 0;
+    for (let i = 0; i < COUNT; i++) {
+      pts.push({
+        x:  Math.random() * W,
+        y:  Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.45,
+        vy: (Math.random() - 0.5) * 0.45,
+        r:  Math.random() * 1.5 + 1,
+      });
+    }
+  }
+
+  /* Mouse parallax offset */
+  let ox = 0, oy = 0;
+  window.addEventListener('mousemove', e => {
+    ox = (e.clientX / W - 0.5) * 18;
+    oy = (e.clientY / H - 0.5) * 12;
+  });
+
+  /* Detect current theme accent colour */
+  function accentRGB() {
+    const dark = document.documentElement.getAttribute('data-theme') !== 'light';
+    return dark ? '79,142,247' : '37,99,235';
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    const acc = accentRGB();
+
+    /* Lines */
+    for (let i = 0; i < COUNT; i++) {
+      for (let j = i + 1; j < COUNT; j++) {
+        const dx = pts[i].x - pts[j].x;
+        const dy = pts[i].y - pts[j].y;
+        const d  = Math.sqrt(dx * dx + dy * dy);
+        if (d < MAX_DIST) {
+          const alpha = (1 - d / MAX_DIST) * 0.22;
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x + ox, pts[i].y + oy);
+          ctx.lineTo(pts[j].x + ox, pts[j].y + oy);
+          ctx.strokeStyle = `rgba(${acc},${alpha})`;
+          ctx.lineWidth   = 0.8;
+          ctx.stroke();
+        }
+      }
+    }
+
+    /* Dots */
+    for (const p of pts) {
+      ctx.beginPath();
+      ctx.arc(p.x + ox, p.y + oy, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${acc},0.75)`;
+      ctx.fill();
+    }
+  }
+
+  function update() {
+    for (const p of pts) {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+    }
+  }
+
+  function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('resize', () => { resize(); init(); });
+  resize();
+  init();
+  loop();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# English synonyms for course catalog search
+video, movie, film, recording, clip
+audio, sound, music
+course, class, lesson, tutorial, training, workshop, module
+presentation, slides, deck, slideshow, powerpoint
+document, file, paper, report, manual, guide, handbook
+image, picture, photo, figure, screenshot, thumbnail
+introduction, intro, overview, basics, fundamentals
+advanced, expert, professional, senior
+beginner, starter, novice, elementary
+exercise, practice, homework, task, assignment, lab
+summary, overview, conclusion, review, recap
+error, bug, issue, problem, fault, exception
+install, setup, configure, deploy, initialize
+database, db, datastore, storage, repository
+server, backend, api, service, endpoint
+frontend, client, ui, interface, web
+password, credential, secret, auth, authentication, login
+test, testing, spec
+function, method, procedure, routine, subroutine
+variable, parameter, argument, attribute, property
+class, object, type, struct, interface
+import, include, require, dependency, library
+loop, iteration, cycle, repeat
+condition, branch, switch
+array, list, collection, sequence, vector
+string, text, character, char
+number, integer, float, numeric, digit

@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+
+# Generated catalog output (rebuild with catalog_generator.py)
+output/
+
+# Environment / secrets
+.env
+*.env.local
+
+# Elasticsearch fastembed model cache
+.fastembed_cache/
+
+# Logs
+*.log
+catalog_server_dev.log
+
+# Node.js
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local tooling / generated caches
+.atl/
+backend/cache_temporal/
+
+# Persistent UI state (scanned-folder registry)
+data/
+
+# Per-machine configuration (created from backend/env.example.py on first start)
+backend/env.py
+
+# Local data that does not belong in the repository
+# raw benchmark output (hundreds of local file paths)
+tests/results/
+# Elasticsearch exports (Tools > Export / Import index) — can be GBs
+toexport/
+odd/
+.claude/
+*.tgz
+*.manifest.json

@@ -1,0 +1,29 @@
+# Course Catalog Backend — Python dependencies
+# Install with: pip install -r requirements.txt
+
+# ── Core (required) ──────────────────────────────────────────────────────────
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# ── WebSocket streaming search (optional but recommended) ────────────────────
+flask-socketio>=5.3.0      # WebSocket support for real-time search results
+simple-websocket>=0.9.0    # WebSocket transport for Flask dev server (threading mode)
+
+# ── Text extraction (optional but strongly recommended) ───────────────────────
+PyMuPDF>=1.23.0            # PDF extraction (fastest)
+pdfminer.six>=20221105     # PDF fallback
+python-docx>=1.0.0         # DOCX
+openpyxl>=3.1.0            # XLSX
+python-pptx>=0.6.23        # PPTX
+striprtf>=0.0.26           # RTF
+beautifulsoup4>=4.12.0     # HTML text extraction
+chardet>=5.2.0             # Encoding detection
+
+# ── Elasticsearch (optional — for semantic/multilingual search) ───────────────
+elasticsearch>=8.0.0,<9.0.0    # ES Python client v8
+fastembed>=0.2.0               # Multilingual embeddings (ONNX, no PyTorch needed)
+sentence-transformers>=3.0.0   # Required for mE5-small and LaBSE models (uses PyTorch)
+sentencepiece>=0.1.99          # Required for LaBSE tokenizer
+
+# ── FAISS fallback (optional — semantic search without Elasticsearch) ─────────
+faiss-cpu>=1.7.4               # Vector similarity search fallback when ES is unavailable

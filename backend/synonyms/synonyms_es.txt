@@ -1,0 +1,28 @@
+# Spanish synonyms for course catalog search
+video, película, grabación, clip, vídeo
+audio, sonido, música, pista
+curso, clase, lección, tutorial, capacitación, formación, taller, módulo
+presentación, diapositivas, exposición
+documento, archivo, informe, manual, guía, handbook
+imagen, foto, fotografía, figura, miniatura
+introducción, fundamentos, nociones
+avanzado, experto, profesional
+principiante, novato, básico, elemental
+ejercicio, práctica, tarea, laboratorio
+resumen, conclusión, síntesis
+error, fallo, problema, defecto, excepción
+instalar, configurar, desplegar, inicializar
+almacenamiento, repositorio
+servidor, servicio, api
+interfaz, cliente, web
+contraseña, credencial, autenticación
+prueba, test, especificación
+función, método, procedimiento, rutina
+variable, parámetro, argumento, atributo
+clase, objeto, tipo, estructura
+importar, incluir, dependencia, librería, biblioteca
+bucle, iteración, ciclo
+condición, rama
+arreglo, lista, colección, vector
+cadena, texto, carácter
+número, entero, flotante, numérico

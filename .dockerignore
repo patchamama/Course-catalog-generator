@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.env
+*.local.py
+course_catalog_DEMO.*
+course_catalog.md
+*.md
+*.html
+courses/

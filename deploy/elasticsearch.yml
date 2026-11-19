@@ -1,0 +1,7 @@
+# Elasticsearch config — CORS for local development (search-console.html via file://)
+network.host: 0.0.0.0
+
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+http.cors.allow-headers: "Content-Type,X-Requested-With,Accept"
+http.cors.allow-methods: "OPTIONS,HEAD,GET,POST"

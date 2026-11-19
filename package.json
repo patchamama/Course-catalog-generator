@@ -1,0 +1,22 @@
+{
+  "name": "_course_catalog_generator",
+  "version": "1.0.0",
+  "description": "A full-stack tool to index, search, and chat with your course content using Elasticsearch and local LLMs (via Ollama).",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "globals": "^17.4.0",
+    "html-validate": "^10.11.2",
+    "stylelint-config-standard": "^40.0.0"
+  }
+}

@@ -1,0 +1,106 @@
+# Course Catalog — Docker Compose
+#
+# Quick start:
+#   1. Copy .env.example to .env and set COURSES_PATH
+#   2. docker-compose up -d
+#   3. Open http://localhost:5000 in your browser
+#
+# With Kibana (ES management UI):
+#   docker-compose --profile kibana up -d
+#
+# Index files into Elasticsearch:
+#   docker-compose run --rm indexer
+
+services:
+
+  # ── Flask backend ────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: course-catalog-backend
+    container_name: course-catalog-backend
+    ports:
+      - "${PORT:-5000}:5000"
+    volumes:
+      # Mount your courses directory as read-only inside the container.
+      # Set COURSES_PATH in your .env file (see .env.example).
+      - "${COURSES_PATH:-./courses}:/courses:ro"
+    environment:
+      - SEARCH_BASE_PATH=/courses
+      - HOST=0.0.0.0
+      - PORT=5000
+      - DEBUG=${DEBUG:-false}
+      - MAX_RESULTS=${MAX_RESULTS:-50}
+      - MAX_MATCHES_PER_FILE=${MAX_MATCHES_PER_FILE:-5}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-50}
+      - ES_URL=http://elasticsearch:9200
+      - ES_INDEX=${ES_INDEX:-course_catalog}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Elasticsearch 8.x ────────────────────────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: course-catalog-es
+    environment:
+      - discovery.type=single-node
+      # Disable security for local development (no passwords needed)
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      # Memory limits — adjust for your machine
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - cluster.name=course-catalog
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+      - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    ports:
+      - "${ES_PORT:-9200}:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+    restart: unless-stopped
+
+  # ── Indexer (one-shot: indexes files then exits) ──────────────────────────────
+  indexer:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: course-catalog-backend
+    container_name: course-catalog-indexer
+    volumes:
+      - "${COURSES_PATH:-./courses}:/courses:ro"
+    environment:
+      - SEARCH_BASE_PATH=/courses
+      - ES_URL=http://elasticsearch:9200
+      - ES_INDEX=${ES_INDEX:-course_catalog}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    command: ["python", "backend/search_indexer.py"]
+    restart: "no"
+
+  # ── Kibana (optional — only started with --profile kibana) ───────────────────
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.0
+    container_name: course-catalog-kibana
+    profiles: ["kibana"]
+    ports:
+      - "${KIBANA_PORT:-5601}:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+volumes:
+  es_data:
+    driver: local

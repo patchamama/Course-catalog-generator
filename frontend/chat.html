@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalog — Chat</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111827'/%3E%3Cpath d='M6 8h20v13H17l-3 4-3-4H6V8z' fill='%2310b981' opacity='.2'/%3E%3Cpath d='M6 8h20v13H17l-3 4-3-4H6V8z' stroke='%2310b981' stroke-width='2' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E">
+<!-- highlight.js for syntax highlighting in file viewer + code blocks -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" id="hljs-theme-dark">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css" id="hljs-theme-light" disabled>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<!-- marked.js for markdown rendering in AI answers -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<!-- shared catalog assets -->
+<link rel="stylesheet" href="assets/catalog.css">
+<script src="assets/catalog.js"></script>
+<link rel="stylesheet" href="assets/chat.css">
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <span class="header-logo">💬</span>
+  <h1>Catalog — Chat</h1>
+
+  <div class="header-controls">
+    <a href="/" class="header-link">⌂ Home</a>
+    <a href="search-console.html" class="header-link">← Search</a>
+
+    <div style="display:flex;align-items:center;gap:5px">
+      <label for="mode-select" style="font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer">Mode</label>
+      <select id="mode-select" title="Search mode">
+        <option value="es-semantic" selected>ES Semantic</option>
+        <option value="es-hybrid">ES Hybrid</option>
+        <option value="es-bm25">ES BM25</option>
+      </select>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:5px">
+      <label for="k-select" style="font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer">Sources</label>
+      <select id="k-select" title="Number of document chunks to retrieve">
+        <option value="3">3</option>
+        <option value="5" selected>5</option>
+        <option value="8">8</option>
+        <option value="10">10</option>
+        <option value="15">15</option>
+      </select>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:5px">
+      <label for="lang-select" style="font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer">Lang</label>
+      <select id="lang-select" title="Response language">
+        <option value="auto">Auto</option>
+        <option value="en">EN</option>
+        <option value="es">ES</option>
+        <option value="de">DE</option>
+      </select>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:5px">
+      <label for="model-select" style="font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer">Model</label>
+      <select id="model-select" title="LLM model">
+        <option value="">Loading…</option>
+      </select>
+      <button class="btn secondary" id="llm-settings-btn" onclick="LLM.open()" title="Choose LLM provider: Ollama, OpenAI, Anthropic or any OpenAI-compatible API" style="padding:4px 9px">⚙ LLM</button>
+    </div>
+
+    <div class="status-item">
+      <div id="ollama-dot" class="dot" title="LLM provider status"></div>
+      <span id="ollama-label">Ollama</span>
+    </div>
+
+    <label class="ctx-toggle-wrap" title="When ON, previous messages are included as context for the AI">
+      <input type="checkbox" id="ctx-toggle">
+      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      Continue context
+    </label>
+
+    <div class="files-badge" id="files-badge" title="Indexed chunks in Elasticsearch" style="display:none">
+      <span id="files-count">—</span> chunks
+    </div>
+
+    <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">☀</button>
+    <button class="btn secondary" id="new-chat-btn" title="Clear conversation and start fresh">+ New</button>
+  </div>
+</header>
+
+<!-- ── Backend notice ── -->
+<div id="backend-notice">
+  ⚠ Connecting to backend… Make sure the server is running on
+  <code style="background:rgba(255,255,255,.08);padding:1px 6px;border-radius:3px;font-size:11px">http://localhost:5000</code>
+</div>
+
+<!-- ── Chat messages ── -->
+<div id="chat-container">
+  <div id="empty-state">
+    <div class="icon">🎓</div>
+    <h2>Ask about the catalog</h2>
+    <p>Ask any question about courses, topics, or content. I'll search and synthesize relevant information for you.</p>
+    <div class="suggestion-chips" id="suggestion-chips">
+      <span class="chip" data-q="What courses are available?">What courses are available?</span>
+      <span class="chip" data-q="What are the main topics covered?">Main topics covered</span>
+      <span class="chip" data-q="How do I get started with the catalog?">How do I get started?</span>
+      <span class="chip" data-q="What are the prerequisites for the courses?">Prerequisites</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Status bar ── -->
+<div id="status-bar">
+  <div class="status-spinner"></div>
+  <span id="status-text">Ready</span>
+</div>
+
+<!-- ── Input area ── -->
+<div id="input-area">
+
+  <!-- File type filter -->
+  <details class="type-filter" id="type-filter">
+    <summary><span class="tf-arrow">▸</span> Filter by file type</summary>
+    <div class="type-filter-body" id="type-filter-grid">
+      <label class="type-chip"><input type="checkbox" value="pdf">📄 pdf</label>
+      <label class="type-chip"><input type="checkbox" value="md">📋 md</label>
+      <label class="type-chip"><input type="checkbox" value="txt">📋 txt</label>
+      <label class="type-chip"><input type="checkbox" value="html">🌐 html</label>
+      <label class="type-chip"><input type="checkbox" value="htm">🌐 htm</label>
+      <label class="type-chip"><input type="checkbox" value="srt">💬 srt</label>
+      <label class="type-chip"><input type="checkbox" value="vtt">💬 vtt</label>
+      <label class="type-chip"><input type="checkbox" value="docx">📝 docx</label>
+      <label class="type-chip"><input type="checkbox" value="xlsx">📈 xlsx</label>
+      <label class="type-chip"><input type="checkbox" value="csv">📈 csv</label>
+      <label class="type-chip"><input type="checkbox" value="json">🔧 json</label>
+      <label class="type-chip"><input type="checkbox" value="xml">🔧 xml</label>
+      <label class="type-chip"><input type="checkbox" value="py">🐍 py</label>
+      <label class="type-chip"><input type="checkbox" value="js">⚡ js</label>
+      <label class="type-chip"><input type="checkbox" value="ts">⚡ ts</label>
+      <label class="type-chip"><input type="checkbox" value="css">🎨 css</label>
+      <label class="type-chip"><input type="checkbox" value="sh">📜 sh</label>
+      <div class="type-filter-actions">
+        <button onclick="document.querySelectorAll('#type-filter-grid input').forEach(c=>c.checked=true)">All</button>
+        <button onclick="document.querySelectorAll('#type-filter-grid input').forEach(c=>c.checked=false)">None</button>
+      </div>
+    </div>
+  </details>
+
+  <div id="input-row">
+    <div id="chat-hist-list"></div>
+    <textarea
+      id="user-input"
+      placeholder="Ask a question… (Enter to send, Shift+Enter for new line)"
+      rows="1"
+      autocomplete="off"
+      spellcheck="true"
+    ></textarea>
+    <button id="cancel-btn" title="Cancel streaming (Esc)">✕</button>
+    <button id="send-btn" title="Send (Enter)">➤</button>
+  </div>
+
+</div>
+
+<!-- Local video viewer modal -->
+<div class="vmodal-overlay" id="vmodal-overlay" style="display:none;" onclick="if(event.target===this)closeVideoModal()">
+  <div class="vmodal">
+    <button class="vmodal-close" onclick="closeVideoModal()">✕</button>
+    <video id="vmodal-video" controls playsinline></video>
+  </div>
+</div>
+
+<!-- ── YouTube viewer modal ── -->
+<div class="ytmodal-overlay" id="ytmodal-overlay" style="display:none;" onclick="if(event.target===this)closeYTModal()">
+  <div class="ytmodal">
+    <button class="ytmodal-close" onclick="closeYTModal()">✕</button>
+    <iframe id="ytmodal-iframe" src="about:blank" title="Video player" allowfullscreen
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+  </div>
+</div>
+
+<!-- ── File viewer modal ── -->
+<div class="fmodal-overlay" id="fmodal-overlay" onclick="if(event.target===this)closeFModal()">
+  <div class="fmodal">
+    <div class="fmodal-hdr">
+      <span class="fmodal-title" id="fmodal-title"></span>
+      <span class="fmodal-ext"   id="fmodal-ext"></span>
+      <button class="fmodal-maximize" id="fmodal-max-btn" onclick="toggleFModalMaximize()" title="Maximize / Restore">⛶</button>
+      <button class="btn secondary" onclick="closeFModal()" style="padding:4px 10px;">✕</button>
+    </div>
+    <!-- File viewer tabs (Text always shown; View for PDF/HTML/MD/images) -->
+    <div class="fmodal-tabs" id="fmodal-tabs" style="display:none;">
+      <div class="fmodal-tab active" data-tab="text" onclick="switchFModalTab('text')">Text</div>
+      <div class="fmodal-tab" id="fmodal-view-tab" data-tab="view" onclick="switchFModalTab('view')">View</div>
+    </div>
+    <div class="fmodal-body" id="fmodal-body">
+      <pre id="fmodal-pre"></pre>
+      <iframe id="fmodal-pdf" class="fmodal-pdf-frame" title="File viewer" src="about:blank"></iframe>
+      <div id="fmodal-preview" class="fmodal-preview"></div>
+    </div>
+    <div class="fmodal-actions">
+      <button class="btn secondary" id="fmodal-vlc-btn" style="display:none" onclick="fmodalPlayVlc()">▶ Play</button>
+      <button class="btn secondary" onclick="closeFModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/llm_config.js"></script>
+<script src="assets/chat.js"></script>
+</body>
+</html>

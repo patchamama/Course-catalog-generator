@@ -1,0 +1,27 @@
+# German synonyms for course catalog search
+Video, Film, Aufnahme, Clip, Aufzeichnung, Videoaufnahme
+Audio, Ton, Musik, Klang, Audiodatei
+Kurs, Klasse, Lektion, Tutorial, Schulung, Training, Workshop, Modul, Unterricht
+Präsentation, Folien, Vortrag, Referat
+Dokument, Datei, Bericht, Handbuch, Anleitung, Dokumentation
+Bild, Foto, Fotografie, Abbildung, Screenshot, Bildschirmfoto
+Einführung, Einleitung, Überblick, Grundlagen, Grundkenntnisse
+Fortgeschritten, Experte, Profi, Fachmann
+Anfänger, Einsteiger, Grundstufe, Elementar
+Übung, Aufgabe, Hausaufgabe, Laborübung, Aufgabenstellung
+Zusammenfassung, Fazit, Schluss, Zusammenfassung
+Fehler, Bug, Problem, Defekt, Ausnahme, Exception
+Installieren, Einrichten, Konfigurieren, Bereitstellen, Initialisieren
+Datenbank, Datenspeicher, Speicher, Repository
+Server, Dienst, API, Schnittstelle, Endpunkt
+Passwort, Kennwort, Zugangsdaten, Authentifizierung, Anmeldung
+Test, Prüfung, Spezifikation, Testfall
+Funktion, Methode, Prozedur, Routine, Unterprogramm
+Variable, Parameter, Argument, Attribut, Eigenschaft
+Klasse, Objekt, Typ, Struktur, Datentyp
+Import, Einbinden, Abhängigkeit, Bibliothek
+Schleife, Iteration, Zyklus, Wiederholung
+Bedingung, If-Anweisung, Verzweigung
+Array, Liste, Sammlung, Vektor, Aufzählung
+Zeichenkette, Text, Zeichen, String
+Zahl, Ganzzahl, Gleitkommazahl, Numerisch

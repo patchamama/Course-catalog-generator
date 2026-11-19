@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalog</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f1117'/%3E%3Ccircle cx='14' cy='14' r='7' stroke='%234f8ef7' stroke-width='2.5' fill='none'/%3E%3Cline x1='19' y1='19' x2='26' y2='26' stroke='%234f8ef7' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<!-- highlight.js for syntax highlighting in file viewer -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" id="hljs-theme-dark">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css" id="hljs-theme-light" disabled>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<!-- marked.js for markdown rendering in AI answers -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<!-- shared catalog assets -->
+<link rel="stylesheet" href="assets/catalog.css">
+<script src="assets/catalog.js"></script>
+<link rel="stylesheet" href="assets/es_test.css">
+</head>
+<body>
+<div class="app">
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+<header>
+  <button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="Show/hide sidebar">&#9776;</button>
+  <span class="logo">⚡</span>
+  <h1>Catalog</h1>
+  <div class="status-bar">
+    <div class="status-item">
+      <div class="dot" id="dot-es"></div>
+      <span id="lbl-es">ES: checking…</span>
+    </div>
+    <div class="status-item">
+      <div class="dot" id="dot-api"></div>
+      <span id="lbl-api">API: checking…</span>
+    </div>
+    <div class="status-item">
+      <div class="dot" id="dot-ollama"></div>
+      <span id="lbl-ollama">Ollama: checking…</span>
+    </div>
+    <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">☀</button>
+    <button class="secondary" style="font-size:11px;padding:4px 10px;" onclick="refreshStatus()">↺ Refresh</button>
+    <a href="chat.html" style="font-size:11px;color:var(--muted);text-decoration:none;padding:4px 10px;border:1px solid var(--border);border-radius:5px;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">💬 Chat →</a>
+    <a href="/" style="font-size:11px;color:var(--muted);text-decoration:none;padding:4px 10px;border:1px solid var(--border);border-radius:5px;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">⌂ Home</a>
+  </div>
+</header>
+
+<main>
+
+<!-- ══ SIDEBAR ═════════════════════════════════════════════════════════════ -->
+<aside class="sidebar" id="main-sidebar">
+
+  <!-- Search -->
+  <div>
+    <div class="section-title">Search</div>
+    <label>Query <span class="help-icon" onclick="showHelp('query-syntax')" title="Query syntax help">?</span></label>
+    <div class="history-wrap">
+      <input type="text" id="q" placeholder="e.g. Installation, Benutzer, workflow…"
+             onkeydown="if(event.key==='Enter')doSearch()"
+             onfocus="showHistory('q','history-q')" onblur="setTimeout(()=>hideHistory('history-q'),200)" />
+      <div class="history-list" id="history-q"></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Language</label>
+      <select id="lang">
+        <option value="">auto</option>
+        <option value="de">Deutsch (de)</option>
+        <option value="es">Español (es)</option>
+        <option value="en">English (en)</option>
+      </select>
+    </div>
+    <div>
+      <label>Results</label>
+      <input type="text" id="limit" value="20" style="text-align:center" />
+    </div>
+  </div>
+
+  <!-- File type filter -->
+  <details class="ext-filter" id="ext-filter">
+    <summary>Filter by file type<span id="ext-filter-badges" style="font-size:12px;margin-left:4px;"></span></summary>
+    <div class="ext-filter-grid" id="ext-filter-grid">
+      <label><input type="checkbox" value="pdf">📄 pdf</label>
+      <label><input type="checkbox" value="md">📋 md</label>
+      <label><input type="checkbox" value="txt">📋 txt</label>
+      <label><input type="checkbox" value="html">🌐 html</label>
+      <label><input type="checkbox" value="srt">💬 srt</label>
+      <label><input type="checkbox" value="vtt">💬 vtt</label>
+      <label><input type="checkbox" value="docx">📝 docx</label>
+      <label><input type="checkbox" value="doc">📝 doc</label>
+      <label><input type="checkbox" value="xlsx">📈 xlsx</label>
+      <label><input type="checkbox" value="pptx">📊 pptx</label>
+      <label><input type="checkbox" value="py">🐍 py</label>
+      <label><input type="checkbox" value="js">⚡ js</label>
+      <label><input type="checkbox" value="ts">⚡ ts</label>
+      <label><input type="checkbox" value="json">🔧 json</label>
+      <label><input type="checkbox" value="csv">📈 csv</label>
+      <label><input type="checkbox" value="xml">🔧 xml</label>
+      <label><input type="checkbox" value="yaml">🔧 yaml</label>
+      <label><input type="checkbox" value="sql">🗃 sql</label>
+      <label><input type="checkbox" value="css">🎨 css</label>
+      <label><input type="checkbox" value="java">☕ java</label>
+      <label><input type="checkbox" value="cpp">🔧 cpp</label>
+      <label><input type="checkbox" value="sh">📜 sh</label>
+    </div>
+    <div style="margin-top:4px;display:flex;gap:6px;">
+      <button class="secondary" style="font-size:10px;padding:2px 8px;" onclick="document.querySelectorAll('#ext-filter-grid input').forEach(c=>c.checked=true)">All</button>
+      <button class="secondary" style="font-size:10px;padding:2px 8px;" onclick="document.querySelectorAll('#ext-filter-grid input').forEach(c=>c.checked=false)">None</button>
+    </div>
+  </details>
+
+  <div>
+    <label>Search mode</label>
+    <div class="tab-bar" id="mode-tabs">
+      <div class="tab active" data-mode="es-semantic" onclick="setMode(this)">
+        ES Semantic
+        <span class="help-icon" onclick="event.stopPropagation();showHelp('es-semantic')" title="Learn about this mode">?</span>
+      </div>
+      <div class="tab" data-mode="es-hybrid" onclick="setMode(this)">
+        ES Hybrid
+        <span class="help-icon" onclick="event.stopPropagation();showHelp('es-hybrid')" title="Learn about this mode">?</span>
+      </div>
+      <div class="tab" data-mode="es-bm25" onclick="setMode(this)">
+        ES BM25
+        <span class="help-icon" onclick="event.stopPropagation();showHelp('es-bm25')" title="Learn about this mode">?</span>
+      </div>
+      <div class="tab" data-mode="python" onclick="setMode(this)">
+        Python
+        <span class="help-icon" onclick="event.stopPropagation();showHelp('python')" title="Learn about this mode">?</span>
+      </div>
+      <div class="tab" data-mode="es-filename" onclick="setMode(this)">
+        Filename
+        <span class="help-icon" onclick="event.stopPropagation();showHelp('es-filename')" title="Learn about this mode">?</span>
+      </div>
+    </div>
+    <div class="help-panel" id="help-panel"></div>
+  </div>
+
+  <div class="row">
+    <button class="full" onclick="doSearch()">
+      <span id="search-btn-text">Search</span>
+    </button>
+    <button class="secondary" onclick="clearResults()" title="Clear results">✕</button>
+  </div>
+
+  <hr>
+
+  <!-- ES Status -->
+  <div>
+    <div class="section-title">Index Status</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Documents</div>
+        <div class="stat-value accent" id="stat-docs">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ES Status</div>
+        <div class="stat-value green" id="stat-health">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Index</div>
+        <div class="stat-value" id="stat-index" style="font-size:12px;word-break:break-all">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Store size</div>
+        <div class="stat-value" id="stat-size">—</div>
+      </div>
+    </div>
+    <button class="secondary full" style="margin-top:8px;font-size:12px;" onclick="refreshStats()">
+      ↺ Refresh stats
+    </button>
+  </div>
+
+  <hr>
+
+  <!-- Clean / Reset -->
+  <div>
+    <div class="section-title">Index Management</div>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">
+      Clean removes all documents from the index without deleting the index schema.
+      Reset deletes and recreates the index completely.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <button class="danger full" onclick="cleanIndex()">🗑 Clean (delete all docs)</button>
+      <p style="font-size:11px;color:var(--muted);">
+        Or run from terminal:<br>
+        <code style="background:var(--code-bg);border-radius:3px;padding:2px 4px;font-size:10px;">
+          python backend/search_indexer.py --clean
+        </code>
+      </p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Direct ES query -->
+  <div>
+    <div class="section-title">Direct ES Query</div>
+    <div class="es-direct">
+      <label>Endpoint (GET)</label>
+      <input type="text" id="es-endpoint" value="/_cluster/health?pretty" />
+      <label>Body (optional, for POST)</label>
+      <textarea class="es-direct-body" id="es-body" placeholder='{"query":{"match_all":{}},"size":5}'></textarea>
+      <button onclick="runDirect()">Run</button>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Settings -->
+  <div>
+    <div class="section-title">Connection</div>
+    <label>Backend URL (Flask)</label>
+    <input type="text" id="api-url" value="http://localhost:5000" />
+    <label style="margin-top:8px;">Elasticsearch URL</label>
+    <input type="text" id="es-url" value="http://127.0.0.1:9200" />
+    <label style="margin-top:8px;">Ollama URL</label>
+    <input type="text" id="ollama-url" value="http://localhost:11434" />
+    <label style="margin-top:8px;">ES Inference Model ID <span style="font-size:10px;color:var(--muted)">(for semantic search in direct mode)</span></label>
+    <input type="text" id="es-embed-model" placeholder="e.g. .multilingual-e5-small_linux-x86_64" style="font-size:11px;" />
+    <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.6;">
+      Ollama models:
+      <a href="https://ollama.com/search" target="_blank" rel="noopener"
+         style="color:var(--accent);text-decoration:none;font-weight:600;"
+         title="Browse and find models to install with: ollama pull &lt;model&gt;">
+        ollama.com/search ↗
+      </a>
+      <br>
+      <span style="font-size:10px;">Install: <code style="background:var(--code-bg);border-radius:3px;padding:1px 4px;">ollama pull llama3.2</code></span>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Log -->
+  <div>
+    <div class="section-title">Log</div>
+    <div class="log-panel" id="log"></div>
+  </div>
+
+</aside>
+
+<!-- ══ RIGHT PANEL ═══════════════════════════════════════════════════════════ -->
+<div style="display:flex;flex-direction:column;overflow:hidden;">
+
+  <!-- Panel tab bar -->
+  <div class="panel-tabs">
+    <div class="panel-tab"        id="tab-search" onclick="switchPanel('search')">🔍 Search</div>
+    <div class="panel-tab active" id="tab-ask"    onclick="switchPanel('ask')">🤖 Ask</div>
+    <div class="panel-tab"        id="tab-status" onclick="switchPanel('status')">📊 Status</div>
+    <div class="panel-tab"        id="tab-tools"  onclick="switchPanel('tools')">🛠 Tools</div>
+  </div>
+
+  <!-- Direct mode banner (shown when Flask backend is offline) -->
+  <div class="direct-banner" id="direct-banner">
+    ⚡ <b>Direct mode</b> — backend offline. Queries go straight to ES / Ollama.
+  </div>
+
+  <!-- Search results panel -->
+  <section class="results" id="results-panel" style="flex:1;overflow-y:auto;display:none;">
+    <div class="no-results" id="empty-state">
+      <div class="icon">🔍</div>
+      <div>Enter a query and press <strong>Search</strong></div>
+      <div style="margin-top:8px;font-size:12px;color:var(--muted)">
+        Make sure Elasticsearch is running and the index is populated.
+      </div>
+    </div>
+    <div id="results-container" style="display:none">
+      <div class="results-header">
+        <div class="results-meta" id="results-meta"></div>
+        <span class="engine-badge" id="engine-badge">—</span>
+      </div>
+      <div id="results-list"></div>
+      <div class="raw-section">
+        <details>
+          <summary>Raw JSON response</summary>
+          <pre class="raw-json" id="raw-json"></pre>
+        </details>
+      </div>
+    </div>
+    <div id="direct-result" style="display:none">
+      <div class="results-header">
+        <div class="results-meta" id="direct-meta"></div>
+      </div>
+      <pre class="raw-json" id="direct-json"></pre>
+    </div>
+  </section>
+
+  <!-- Ask / RAG panel -->
+  <section class="ask-panel visible" id="ask-panel" style="flex:1;overflow-y:auto;">
+    <div style="margin-bottom:12px;">
+      <div style="font-size:18px;font-weight:700;margin-bottom:4px;">Ask your documents</div>
+      <div style="font-size:12px;color:var(--muted);">
+        Uses Elasticsearch to retrieve relevant passages, then an Ollama LLM to synthesize an answer.
+      </div>
+    </div>
+
+    <!-- Copy-query buttons between Search and Ask -->
+    <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">
+      <button class="secondary" style="font-size:10px;padding:2px 8px;" title="Copy Search query → Ask"
+              onclick="copyQuery('q','ask-q')">↓ From Search</button>
+      <button class="secondary" style="font-size:10px;padding:2px 8px;" title="Copy Ask query → Search"
+              onclick="copyQuery('ask-q','q')">↑ To Search</button>
+    </div>
+
+    <!-- Question input -->
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <div class="history-wrap" style="flex:1;">
+        <input type="text" id="ask-q" placeholder="Ask a question about your documents…"
+               style="width:100%;" onkeydown="if(event.key==='Enter')doAsk()"
+               onfocus="showHistory('ask-q','history-ask-q')" onblur="setTimeout(()=>hideHistory('history-ask-q'),200)" />
+        <div class="history-list" id="history-ask-q"></div>
+      </div>
+      <button onclick="doAsk()" id="ask-btn" style="white-space:nowrap;min-width:80px;">Ask</button>
+      <button class="secondary" onclick="clearAsk()" title="Clear">✕</button>
+    </div>
+
+    <!-- Options row -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end;">
+      <div style="min-width:120px;">
+        <label>Language</label>
+        <select id="ask-lang">
+          <option value="">auto</option>
+          <option value="de">Deutsch (de)</option>
+          <option value="es">Español (es)</option>
+          <option value="en">English (en)</option>
+        </select>
+      </div>
+      <div style="min-width:80px;">
+        <label>Context chunks (k)</label>
+        <input type="number" id="ask-k" value="5" min="1" max="15"
+               style="text-align:center;" />
+      </div>
+      <div style="flex:1;min-width:160px;">
+        <label>Model (<span id="ollama-model-status" style="color:var(--muted)">loading…</span>)
+          <button type="button" onclick="LLM.open()" title="Use Ollama, OpenAI, Anthropic or any OpenAI-compatible API"
+                  style="margin-left:6px;padding:1px 8px;font-size:11px;cursor:pointer">⚙ LLM</button></label>
+        <select id="ask-model">
+          <option value="">auto (recommended)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Status row -->
+    <div class="ask-status-row" id="ask-status-row"></div>
+
+    <!-- Sources -->
+    <div id="ask-sources" style="display:none;margin-top:6px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Sources retrieved:</div>
+      <div class="sources-bar" id="ask-sources-bar"></div>
+    </div>
+
+    <!-- Answer -->
+    <div id="ask-answer-wrap" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;margin-bottom:6px;">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);">Answer</div>
+        <span class="ask-model-badge" id="ask-model-badge" style="display:none;"></span>
+      </div>
+      <div class="ask-answer" id="ask-answer"></div>
+    </div>
+
+    <!-- Debug: context sent to AI -->
+    <details class="ask-debug" id="ask-debug" style="display:none;">
+      <summary>Debug — context sent to the AI</summary>
+      <pre id="ask-debug-content"></pre>
+    </details>
+
+    <!-- Ollama not available notice -->
+    <div id="ollama-notice" style="display:none;margin-top:16px;background:var(--surface);
+         border:1px solid var(--border);border-radius:8px;padding:16px;">
+      <div style="font-weight:600;margin-bottom:8px;">Ollama not available</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.7;">
+        Install Ollama to enable AI-powered answers:<br>
+        <code style="background:var(--code-bg);border-radius:3px;padding:2px 6px;">
+          curl -fsSL https://ollama.com/install.sh | sh</code> (Linux/WSL)<br>
+        or download from <code>https://ollama.com</code><br><br>
+        Then install a model:<br>
+        <code style="background:var(--code-bg);border-radius:3px;padding:2px 6px;">
+          ollama pull llama3.2</code><br><br>
+        Or run the setup helper:<br>
+        <code style="background:var(--code-bg);border-radius:3px;padding:2px 6px;">
+          python backend/ai_ollama_setup.py</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- Status / Statistics panel (lazy-loaded when tab is opened) -->
+  <section class="status-panel" id="status-panel" style="flex:1;overflow-y:auto;">
+    <!-- Service start/stop controls -->
+    <div class="svc-controls">
+      <div class="svc-row">
+        <span class="svc-dot" id="svc-es-dot"></span>
+        <span class="svc-label">Elasticsearch</span>
+        <button class="secondary svc-btn" onclick="svcAction('elasticsearch','start')">▶ Start</button>
+        <button class="secondary svc-btn" onclick="svcAction('elasticsearch','stop')">■ Stop</button>
+        <span class="svc-msg" id="svc-es-msg"></span>
+      </div>
+      <div class="svc-row">
+        <span class="svc-dot" id="svc-ol-dot"></span>
+        <span class="svc-label">Ollama</span>
+        <button class="secondary svc-btn" onclick="svcAction('ollama','start')">▶ Start</button>
+        <button class="secondary svc-btn" onclick="svcAction('ollama','stop')">■ Stop</button>
+        <span class="svc-msg" id="svc-ol-msg"></span>
+      </div>
+      <div class="svc-row">
+        <span class="svc-dot" id="svc-bk-dot"></span>
+        <span class="svc-label">Backend (Flask)</span>
+        <button class="secondary svc-btn" onclick="backendAction('restart')">↺ Restart</button>
+        <button class="secondary svc-btn" onclick="backendAction('stop')">■ Stop</button>
+        <span class="svc-msg" id="svc-bk-msg"></span>
+      </div>
+      <div class="svc-row svc-start-cmd" id="svc-start-cmd" style="display:none">
+        <span style="font-size:11px;color:var(--muted)">Start backend:</span>
+        <code style="font-size:11px;background:var(--code-bg);padding:2px 7px;border-radius:3px;user-select:all">python catalog_server.py</code>
+      </div>
+    </div>
+    <!-- Active indexing task banner -->
+    <div class="active-task-banner" id="active-task-banner">
+      <div class="active-task-banner-title">
+        <span class="spinner"></span>
+        <span id="active-task-banner-title-text">Indexing in progress…</span>
+      </div>
+      <div class="active-task-banner-bar-bg">
+        <div class="active-task-banner-bar-fill" id="active-task-banner-fill"></div>
+      </div>
+      <div class="active-task-banner-label" id="active-task-banner-label"></div>
+    </div>
+
+    <div style="display:flex;align-items:center;margin-bottom:18px;">
+      <div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:2px;">Index Status &amp; Statistics</div>
+        <div style="font-size:12px;color:var(--muted);">Live data from Elasticsearch — click Refresh to reload.</div>
+      </div>
+      <button class="secondary st-refresh-btn" onclick="loadStatus(true)">↺ Refresh</button>
+    </div>
+    <div id="status-content">
+      <div class="st-loading"><span class="spinner"></span> Loading status…</div>
+    </div>
+  </section>
+
+  <!-- Tools panel -->
+  <section class="tools-panel" id="tools-panel" style="flex:1;overflow-y:auto;">
+
+    <!-- ── Embedding Model ── -->
+    <div class="tool-card open" id="tc-embedding">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-embedding')">
+        <span class="tool-card-icon">🧠</span>
+        <span class="tool-card-title">Embedding Model Configuration</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Choose the embedding model for semantic (kNN) search. <b>MiniLM</b> and <b>mpnet</b> are
+          English-biased — use <b>canonical language</b> to translate queries at search time.
+          <b>mE5-small</b> and <b>LaBSE</b> are natively multilingual — no translation needed,
+          smaller index, faster queries. Changing the model requires a full reindex.
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Model</label>
+            <select id="tool-embed-model" style="width:100%;" onchange="onEmbedModelChange()">
+              <option value="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2">MiniLM-L12-v2 (fast, 384d)</option>
+              <option value="sentence-transformers/paraphrase-multilingual-mpnet-base-v2">mpnet-base-v2 (accurate, 768d)</option>
+              <option value="intfloat/multilingual-e5-small">mE5-small (multilingual, 384d) ★ no translation</option>
+              <option value="sentence-transformers/LaBSE">LaBSE (multilingual, 768d) ★ no translation</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Canonical language section (hidden for multilingual models) -->
+        <div id="canonical-lang-section" style="margin-top:10px;padding:10px;background:var(--surface2,#f4f4f4);border-radius:6px;border:1px solid var(--border,#ddd);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;">
+              <input type="checkbox" id="canonical-lang-enabled" onchange="onCanonicalLangChange()">
+              Enable canonical language translation
+            </label>
+          </div>
+          <div id="canonical-lang-opts" style="display:none;">
+            <div class="tool-row" style="gap:10px;margin-bottom:6px;">
+              <div style="flex:1;">
+                <label>Canonical language</label>
+                <select id="canonical-lang-select" style="width:100%;">
+                  <option value="en">English (en)</option>
+                  <option value="es">Spanish (es)</option>
+                  <option value="de">German (de)</option>
+                </select>
+              </div>
+              <div style="flex:1;">
+                <label>Translation model (Ollama)</label>
+                <input type="text" id="canonical-trans-model" value="translategemma:4b" style="width:100%;">
+              </div>
+            </div>
+            <div class="tool-desc" style="font-size:0.82em;margin:0;">
+              Queries will be translated to the canonical language before embedding (background mode via Ollama).
+              Reduces index size vs storing multi-language vectors. Not needed with mE5-small or LaBSE.
+            </div>
+          </div>
+          <div id="canonical-lang-multilingual-note" style="display:none;font-size:0.82em;color:var(--accent,#0078d4);">
+            ★ The selected model is natively multilingual — canonical language translation is not needed.
+          </div>
+        </div>
+        <!-- File type filter for full reindex -->
+        <div class="idx-ext-section">
+          <div class="idx-ext-label">
+            File types to reindex
+            <span class="idx-ext-hint">(leave all unchecked to reindex every supported type)</span>
+          </div>
+          <div class="idx-ext-grid" id="tool-reindex-ext-grid">
+            <label class="idx-ext-chip"><input type="checkbox" value="pdf">📄 pdf</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="md">📋 md</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="txt">📋 txt</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="html">🌐 html</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="htm">🌐 htm</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="srt">💬 srt</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="vtt">💬 vtt</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="docx">📝 docx</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="xlsx">📈 xlsx</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="csv">📈 csv</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="json">🔧 json</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="xml">🔧 xml</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="py">🐍 py</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="js">⚡ js</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="ts">⚡ ts</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="css">🎨 css</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="sh">📜 sh</label>
+          </div>
+          <div class="idx-ext-actions">
+            <button onclick="document.querySelectorAll('#tool-reindex-ext-grid input').forEach(c=>c.checked=true)">All</button>
+            <button onclick="document.querySelectorAll('#tool-reindex-ext-grid input').forEach(c=>c.checked=false)">None</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="secondary" onclick="saveEmbeddingModel()">💾 Save config</button>
+          <button id="tool-reindex-btn" onclick="runReindex()" disabled title="Change model to enable">↺ Reindex</button>
+        </div>
+        <div class="idx-progress-wrap" id="reindex-progress-wrap">
+          <div class="idx-progress-bar-bg"><div class="idx-progress-bar-fill" id="reindex-progress-fill"></div></div>
+          <div class="idx-progress-label" id="reindex-progress-label">Starting…</div>
+        </div>
+        <div class="tool-output" id="tool-embed-out"></div>
+      </div>
+    </div>
+
+    <!-- ── ES Indexer ── -->
+    <div class="tool-card" id="tc-indexer">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-indexer')">
+        <span class="tool-card-icon">📂</span>
+        <span class="tool-card-title">Index Directory into Elasticsearch</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Add a new content directory to the Elasticsearch index. Files are scanned, chunked,
+          and embedded for semantic search. <b>Incremental mode</b> (default) skips unchanged
+          and duplicate files via SHA-256 hashing. <b>Reset</b> wipes the existing index first.
+        </div>
+        <!-- Saved folders: persistent list (server-side registry + local cache) -->
+        <div class="sf-box">
+          <div class="sf-head">
+            <span class="sf-title">📌 Saved folders</span>
+            <span class="sf-hint">↻ re-scan (incremental) · ✎ change location · 🗑 remove</span>
+            <button type="button" class="secondary sf-mini" onclick="loadScanFolders()" title="Reload list">⟳</button>
+          </div>
+          <div id="scan-folders-list" class="sf-list">Loading…</div>
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Directory path <span style="font-weight:400;color:var(--muted)">(new folder, or click a saved one to reuse its options)</span></label>
+            <div style="display:flex;gap:6px;">
+              <input type="text" id="tool-idx-path" placeholder="e.g. /path/to/courses" style="width:100%;min-width:0;" />
+              <button type="button" class="secondary" onclick="addScanFolder()" title="Save this folder in the list without scanning it" style="white-space:nowrap;">＋ Save</button>
+            </div>
+          </div>
+        </div>
+        <div class="tool-row">
+          <div>
+            <label>Batch size</label>
+            <input type="number" id="tool-idx-batch" value="50" min="1" max="500" style="width:80px;text-align:center;" />
+          </div>
+          <div>
+            <label>Canonical language</label>
+            <select id="tool-idx-lang" style="width:100px;">
+              <option value="">none</option>
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+              <option value="de">German</option>
+            </select>
+          </div>
+        </div>
+        <div class="tool-check"><input type="checkbox" id="tool-idx-reset"><label for="tool-idx-reset">Reset index (delete all existing data before indexing)</label></div>
+        <div class="tool-check"><input type="checkbox" id="tool-idx-novectors"><label for="tool-idx-novectors">Skip vectors (BM25 only — much faster, no semantic search)</label></div>
+
+        <!-- File type filter for indexing -->
+        <div class="idx-ext-section">
+          <div class="idx-ext-label">
+            File types to index
+            <span class="idx-ext-hint">(leave all unchecked to index every supported type)</span>
+          </div>
+          <div class="idx-ext-grid" id="tool-idx-ext-grid">
+            <label class="idx-ext-chip"><input type="checkbox" value="pdf">📄 pdf</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="md">📋 md</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="txt">📋 txt</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="html">🌐 html</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="htm">🌐 htm</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="srt">💬 srt</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="vtt">💬 vtt</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="docx">📝 docx</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="xlsx">📈 xlsx</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="csv">📈 csv</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="json">🔧 json</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="xml">🔧 xml</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="py">🐍 py</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="js">⚡ js</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="ts">⚡ ts</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="css">🎨 css</label>
+            <label class="idx-ext-chip"><input type="checkbox" value="sh">📜 sh</label>
+          </div>
+          <div class="idx-ext-actions">
+            <button onclick="document.querySelectorAll('#tool-idx-ext-grid input').forEach(c=>c.checked=true)">All</button>
+            <button onclick="document.querySelectorAll('#tool-idx-ext-grid input').forEach(c=>c.checked=false)">None</button>
+          </div>
+        </div>
+
+        <button class="tool-run-btn" id="btn-idx-run" onclick="runIndexDir()">▶ Index directory</button>
+        <div class="idx-progress-wrap" id="idx-progress-wrap">
+          <div class="idx-progress-bar-bg"><div class="idx-progress-bar-fill" id="idx-progress-fill"></div></div>
+          <div class="idx-progress-label" id="idx-progress-label">Starting…</div>
+        </div>
+        <div class="tool-output" id="tool-idx-out"></div>
+      </div>
+    </div>
+
+    <!-- ── Path Manager ── -->
+    <div class="tool-card" id="tc-paths">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-paths')">
+        <span class="tool-card-icon">🗂️</span>
+        <span class="tool-card-title">Indexed Paths Manager</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          View all base directories indexed in Elasticsearch, verify that referenced files
+          still exist on disk, and update path prefixes when directories are moved or renamed.
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button class="secondary" onclick="loadIndexedPaths()">📋 Load paths</button>
+          <button class="secondary" onclick="verifyAllPaths()">🔍 Verify all files</button>
+        </div>
+        <div id="tool-paths-dirs" style="display:none;margin-bottom:12px;"></div>
+        <div id="tool-paths-verify" style="display:none;margin-bottom:12px;"></div>
+        <!-- Path replacement -->
+        <div id="tool-paths-replace" style="display:none;border-top:1px solid var(--border);padding-top:12px;">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">Replace path prefix</div>
+          <div class="tool-row">
+            <div style="flex:1;"><label>Old prefix</label><input type="text" id="tool-paths-old" style="width:100%;" placeholder="e.g. /old/server/path" /></div>
+          </div>
+          <div class="tool-row">
+            <div style="flex:1;"><label>New prefix</label><input type="text" id="tool-paths-new" style="width:100%;" placeholder="e.g. /new/server/path" /></div>
+          </div>
+          <button class="tool-run-btn" onclick="replacePathPrefix()">↻ Update paths in ES</button>
+        </div>
+        <div class="tool-output" id="tool-paths-out"></div>
+      </div>
+    </div>
+
+    <!-- ── File Manager ── -->
+    <div class="tool-card" id="tc-files">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-files')">
+        <span class="tool-card-icon">📄</span>
+        <span class="tool-card-title">File Manager</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Search, delete, or relocate individual files in the Elasticsearch index.
+          Useful when files have been moved, renamed, or removed from disk.
+          Path style (Windows <code>\</code> vs Linux/macOS <code>/</code>) is auto-detected.
+        </div>
+        <!-- Search -->
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Search files by path or name</label>
+            <input type="text" id="tool-files-query" placeholder="e.g. python, .pdf, 2024, chapter" style="width:100%;"
+                   onkeydown="if(event.key==='Enter')searchIndexedFiles()" />
+          </div>
+          <div style="align-self:flex-end;">
+            <button class="secondary" onclick="searchIndexedFiles()">🔍 Search</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button class="secondary" style="font-size:11px;" onclick="searchIndexedFiles('')">📋 List all files</button>
+          <span id="tool-files-style" style="font-size:11px;color:var(--muted);align-self:center;"></span>
+        </div>
+        <!-- Results list -->
+        <div id="tool-files-list" style="display:none;margin-bottom:12px;max-height:400px;overflow-y:auto;"></div>
+        <!-- Edit path form (shown inline when editing) -->
+        <div id="tool-files-edit" style="display:none;border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">Edit file path</div>
+          <div class="tool-row">
+            <div style="flex:1;"><label>Current path</label><input type="text" id="tool-files-old-path" style="width:100%;opacity:.7;" readonly /></div>
+          </div>
+          <div class="tool-row">
+            <div style="flex:1;"><label>New path</label><input type="text" id="tool-files-new-path" style="width:100%;" placeholder="Enter new absolute path" /></div>
+          </div>
+          <div class="tool-row">
+            <div>
+              <label>Path style</label>
+              <select id="tool-files-path-style" style="width:130px;" onchange="convertPathStyle()">
+                <option value="auto">Auto-detect</option>
+                <option value="windows">Windows (\)</option>
+                <option value="posix">Linux / macOS (/)</option>
+              </select>
+            </div>
+            <div style="align-self:flex-end;display:flex;gap:6px;">
+              <button class="tool-run-btn" style="margin:0;" onclick="saveFilePath()">💾 Save</button>
+              <button class="secondary" style="margin:0;" onclick="cancelFileEdit()">Cancel</button>
+            </div>
+          </div>
+        </div>
+        <div class="tool-output" id="tool-files-out"></div>
+      </div>
+    </div>
+
+    <!-- ── Catalog Generator ── -->
+    <div class="tool-card" id="tc-catalog">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-catalog')">
+        <span class="tool-card-icon">📚</span>
+        <span class="tool-card-title">Catalog Generator</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Generate a catalog HTML page from a content directory. Scans the folder structure
+          and creates an interactive browsable catalog (<code>catalog_generator.py</code>).
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Content directory path</label>
+            <input type="text" id="tool-catalog-path" placeholder="e.g. C:\Courses or /home/user/courses" style="width:100%;" />
+          </div>
+        </div>
+        <button class="tool-run-btn" onclick="runCatalogGen()">▶ Generate catalog</button>
+        <div class="tool-output" id="tool-catalog-out"></div>
+      </div>
+    </div>
+
+    <!-- ── YouTube Downloader ── -->
+    <div class="tool-card" id="tc-youtube">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-youtube')">
+        <span class="tool-card-icon">📹</span>
+        <span class="tool-card-title">YouTube Downloader</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Download YouTube videos and/or subtitles using <code>yt-dlp</code>.
+          Provide one or more URLs (one per line). Subtitles are downloaded by default.
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>YouTube URLs (one per line)</label>
+            <textarea id="tool-yt-urls" rows="3" style="width:100%;" placeholder="https://www.youtube.com/watch?v=..."></textarea>
+          </div>
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Output directory (optional)</label>
+            <input type="text" id="tool-yt-output" placeholder="defaults to ./downloads_" style="width:100%;" />
+          </div>
+        </div>
+        <div class="tool-check"><input type="checkbox" id="tool-yt-video" checked><label for="tool-yt-video">Download video</label></div>
+        <div class="tool-check"><input type="checkbox" id="tool-yt-novideo"><label for="tool-yt-novideo">Subtitles only (no video)</label></div>
+        <button class="tool-run-btn" onclick="runYTDownload()">▶ Download</button>
+        <div class="tool-output" id="tool-yt-out"></div>
+      </div>
+    </div>
+
+    <!-- ── Models & containers ── -->
+    <div class="tool-card" id="tc-models">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-models'); if (document.getElementById('tc-models').classList.contains('open')) loadModelsOverview();">
+        <span class="tool-card-icon">🧠</span>
+        <span class="tool-card-title">Models &amp; containers</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          What the app runs on right now: Docker containers (Elasticsearch / Ollama), installed Ollama
+          models — loaded in memory or not, and which ones answer questions — plus the embedding and
+          reranker models.
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          <button type="button" class="secondary" onclick="loadModelsOverview()">⟳ Refresh</button>
+          <button type="button" class="secondary" onclick="openOllamaInstaller()">＋ Add model…</button>
+        </div>
+        <div id="models-ov" class="mo-wrap">Open this card to load.</div>
+        <div class="tool-row" style="margin-top:8px;">
+          <div style="flex:1;">
+            <label>Use a model that is not installed yet</label>
+            <div style="display:flex;gap:6px;">
+              <input type="text" id="mo-pull-name" placeholder="e.g. llama3.2:3b or kimi-k3.1-pro:cloud" style="width:100%;min-width:0;" maxlength="80" />
+              <button type="button" class="secondary" onclick="pullAndUse()" style="white-space:nowrap;">⬇ Pull &amp; use</button>
+            </div>
+          </div>
+        </div>
+        <div class="tool-output" id="models-out"></div>
+      </div>
+    </div>
+
+    <!-- ── Export / Import the Elasticsearch index ── -->
+    <div class="tool-card" id="tc-migrate">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-migrate'); if (document.getElementById('tc-migrate').classList.contains('open')) mgInit();">
+        <span class="tool-card-icon">📦</span>
+        <span class="tool-card-title">Export / Import index (move to another machine)</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Index on a fast machine (e.g. a Mac with the big embedding model), <b>export</b> everything as one
+          archive, copy it to this machine and <b>import</b> it — no re-indexing. The backend packs / unpacks the
+          Elasticsearch Docker volume and restarts Elasticsearch for you. Works from <code>localhost</code> only.
+        </div>
+        <div id="mg-info" class="mo-sub" style="margin-bottom:8px;">Open this card to check Docker…</div>
+
+        <div class="mo-sec">📤 Export (this machine → file)</div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label for="mg-export-dir">Export folder</label>
+            <div style="display:flex;gap:6px;">
+              <input type="text" id="mg-export-dir" style="width:100%;min-width:0;" spellcheck="false" />
+              <button type="button" class="tool-run-btn" id="mg-export-btn" onclick="mgStartExport()" style="white-space:nowrap;margin:0;">📤 Create export</button>
+            </div>
+            <small>Elasticsearch is stopped for the duration of the copy (a consistent snapshot) and restarted afterwards.</small>
+          </div>
+        </div>
+        <div id="mg-exports" class="mo-wrap" style="margin-bottom:10px;"></div>
+
+        <div class="mo-sec">📥 Import (file → this machine) — replaces ALL current Elasticsearch data</div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label for="mg-import-file">Archive to import (full path of the <code>.tgz</code>)</label>
+            <input type="text" id="mg-import-file" style="width:100%;" spellcheck="false" placeholder="e.g. /Users/me/Downloads/es_export_20261119-120000.tgz" />
+          </div>
+        </div>
+        <div class="tool-check"><input type="checkbox" id="mg-import-backup" checked><label for="mg-import-backup">Keep a safety backup of the current index first (recommended)</label></div>
+        <button class="tool-run-btn" id="mg-import-btn" onclick="mgStartImport()">📥 Import &amp; replace Elasticsearch data</button>
+
+        <div id="mg-job" style="margin-top:12px;"></div>
+        <div id="mg-remap" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- ── Ollama Model Installer ── -->
+    <div class="tool-card" id="tc-ollama">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-ollama')">
+        <span class="tool-card-icon">🤖</span>
+        <span class="tool-card-title">Ollama Model Installer</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Pull (install) a new model into Ollama. Common models: <code>llama3.2</code>,
+          <code>mistral</code>, <code>gemma2</code>, <code>qwen2.5</code>, <code>translategemma:4b</code>.
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label for="tool-ollama-model">Model name / search</label>
+            <div style="display:flex;gap:6px;">
+              <input type="text" id="tool-ollama-model" placeholder="e.g. llama or kimi-k3.1-pro:cloud" style="width:100%;min-width:0;" maxlength="80" />
+              <button type="button" onclick="browseOllamaModels()" aria-controls="tool-ollama-catalog" title="Latest official Ollama models, or search by the name typed on the left">Browse</button>
+              <label style="display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:11px;margin:0;" title="Only models available in Ollama cloud">
+                <input type="checkbox" id="tool-ollama-cloud" style="width:auto;margin:0;" /> ☁ cloud
+              </label>
+            </div>
+            <div id="tool-ollama-catalog" hidden style="max-height:160px;overflow:auto;margin-top:6px;" aria-live="polite"></div>
+            <small>Browse newest, or enter a name to search. Cloud requires <code>ollama signin</code>. Queries try installed cloud models before local fallback; context is sent to the cloud.</small>
+          </div>
+        </div>
+        <button class="tool-run-btn" onclick="runOllamaPull()">▶ Pull model</button>
+        <div class="tool-output" id="tool-ollama-out"></div>
+      </div>
+    </div>
+
+    <!-- ── PDF Collector ── -->
+    <div class="tool-card" id="tc-pdf">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-pdf')">
+        <span class="tool-card-icon">📄</span>
+        <span class="tool-card-title">PDF Collector</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Collect and organize PDF files from a source directory tree. Optionally joins PDFs
+          found in the same folder into a single merged file (<code>_pdf_collector/collect.py</code>).
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Source folder</label>
+            <input type="text" id="tool-pdf-source" placeholder="e.g. /path/to/courses" style="width:100%;" />
+          </div>
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Output folder</label>
+            <input type="text" id="tool-pdf-output" placeholder="e.g. /path/to/output" style="width:100%;" />
+          </div>
+        </div>
+        <div class="tool-check"><input type="checkbox" id="tool-pdf-join"><label for="tool-pdf-join">Join PDFs in same folder</label></div>
+        <button class="tool-run-btn" onclick="runPdfCollect()">▶ Collect PDFs</button>
+        <div class="tool-output" id="tool-pdf-out"></div>
+      </div>
+    </div>
+
+    <!-- ── mdtranslator ── -->
+    <div class="tool-card" id="tc-mdtranslator">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-mdtranslator')">
+        <span class="tool-card-icon">🌐</span>
+        <span class="tool-card-title">mdtranslator — Markdown Translator</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Prepare a Markdown document for translation. Splits content into translatable segments
+          and generates translation-ready output (<code>_mdtranslator/translate-prepare.mjs</code>).
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Document path (.md)</label>
+            <input type="text" id="tool-mdtrans-path" placeholder="e.g. /path/to/document.md" style="width:100%;" />
+          </div>
+        </div>
+        <button class="tool-run-btn" onclick="runScript('mdtranslator','tool-mdtrans-out',{file:getId('tool-mdtrans-path')})">▶ Prepare translation</button>
+        <div class="tool-output" id="tool-mdtrans-out"></div>
+      </div>
+    </div>
+
+    <!-- ── mdsplit ── -->
+    <div class="tool-card" id="tc-mdsplit">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-mdsplit')">
+        <span class="tool-card-icon">✂️</span>
+        <span class="tool-card-title">mdsplit — Markdown Splitter</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Split a Markdown file into multiple files by heading level.
+          Optionally generates a table of contents (<code>_mdsplit/mdsplit.py</code>).
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Input file (.md)</label>
+            <input type="text" id="tool-mdsplit-input" placeholder="e.g. /path/to/book.md" style="width:100%;" />
+          </div>
+        </div>
+        <div class="tool-row">
+          <div>
+            <label>Max heading level</label>
+            <select id="tool-mdsplit-level">
+              <option value="1">1 (h1 only)</option>
+              <option value="2" selected>2 (h1 + h2)</option>
+              <option value="3">3 (h1–h3)</option>
+              <option value="4">4 (h1–h4)</option>
+              <option value="5">5 (h1–h5)</option>
+              <option value="6">6 (all)</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label>Output directory (optional)</label>
+            <input type="text" id="tool-mdsplit-output" placeholder="defaults to input dir" style="width:100%;" />
+          </div>
+        </div>
+        <div class="tool-check"><input type="checkbox" id="tool-mdsplit-toc"><label for="tool-mdsplit-toc">Generate table of contents</label></div>
+        <div class="tool-check"><input type="checkbox" id="tool-mdsplit-force"><label for="tool-mdsplit-force">Force overwrite existing files</label></div>
+        <button class="tool-run-btn" onclick="runMdScript('mdsplit')">▶ Split</button>
+        <div class="tool-output" id="tool-mdsplit-out"></div>
+      </div>
+    </div>
+
+    <!-- ── mdImageDownloader ── -->
+    <div class="tool-card" id="tc-mdimages">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-mdimages')">
+        <span class="tool-card-icon">🖼️</span>
+        <span class="tool-card-title">mdImageDownloader — Download Images from Markdown</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Download all remote images referenced in a Markdown file and update paths to local copies.
+          Optionally keeps original HTML img tags (<code>_mdImageDownloader/download-images.mjs</code>).
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Document path (.md)</label>
+            <input type="text" id="tool-mdimg-path" placeholder="e.g. /path/to/document.md" style="width:100%;" />
+          </div>
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Output directory (optional)</label>
+            <input type="text" id="tool-mdimg-out-dir" placeholder="defaults to ./img" style="width:100%;" />
+          </div>
+        </div>
+        <div class="tool-check"><input type="checkbox" id="tool-mdimg-keephtml"><label for="tool-mdimg-keephtml">Keep original HTML img tags</label></div>
+        <div class="tool-check"><input type="checkbox" id="tool-mdimg-dryrun"><label for="tool-mdimg-dryrun">Dry run (preview only)</label></div>
+        <button class="tool-run-btn" onclick="runMdScript('mdImageDownloader')">▶ Download images</button>
+        <div class="tool-output" id="tool-mdimages-out"></div>
+      </div>
+    </div>
+
+    <!-- ── mdformater ── -->
+    <div class="tool-card" id="tc-mdformat">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-mdformat')">
+        <span class="tool-card-icon">✨</span>
+        <span class="tool-card-title">mdformater — Markdown Formatter</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Format and normalize a Markdown document: fix headings, lists, spacing, and optionally
+          process images (<code>_mdformater/format-docs.mjs</code>).
+        </div>
+        <div class="tool-row">
+          <div style="flex:1;">
+            <label>Document path (.md)</label>
+            <input type="text" id="tool-mdformat-path" placeholder="e.g. /path/to/document.md" style="width:100%;" />
+          </div>
+        </div>
+        <div class="tool-check"><input type="checkbox" id="tool-mdformat-auto"><label for="tool-mdformat-auto">Auto mode (non-interactive)</label></div>
+        <div class="tool-check"><input type="checkbox" id="tool-mdformat-images"><label for="tool-mdformat-images">Images only (download + optimize images)</label></div>
+        <button class="tool-run-btn" onclick="runMdScript('mdformater')">▶ Format</button>
+        <div class="tool-output" id="tool-mdformat-out"></div>
+      </div>
+    </div>
+
+    <!-- ── mdfromhtml ── -->
+    <div class="tool-card" id="tc-mdfromhtml">
+      <div class="tool-card-header" onclick="toggleToolCard('tc-mdfromhtml')">
+        <span class="tool-card-icon">🔄</span>
+        <span class="tool-card-title">mdfromhtml — HTML to Markdown Converter</span>
+        <span class="tool-card-arrow">▸</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-desc">
+          Convert HTML files to Markdown. Three modes available: <b>single file</b> conversion,
+          <b>collection</b> (batch convert a directory), and <b>merge</b> (combine converted files into one book).
+        </div>
+        <!-- Sub-tabs -->
+        <div style="display:flex;gap:4px;margin-bottom:12px;">
+          <button style="font-size:11px;" onclick="showFromHtmlTab('single')" id="fhtml-tab-single">Single file</button>
+          <button class="secondary" style="font-size:11px;" onclick="showFromHtmlTab('collection')" id="fhtml-tab-collection">Collection</button>
+          <button class="secondary" style="font-size:11px;" onclick="showFromHtmlTab('merge')" id="fhtml-tab-merge">Merge book</button>
+        </div>
+        <!-- Single file -->
+        <div id="fhtml-single">
+          <div class="tool-row">
+            <div style="flex:1;"><label>Input HTML file</label><input type="text" id="tool-fhtml-s-input" style="width:100%;" placeholder="e.g. page.html" /></div>
+          </div>
+          <div class="tool-row">
+            <div style="flex:1;"><label>Output .md file</label><input type="text" id="tool-fhtml-s-output" style="width:100%;" placeholder="e.g. page.md" /></div>
+          </div>
+          <button class="tool-run-btn" onclick="runFromHtml('mdfromhtml')">▶ Convert</button>
+        </div>
+        <!-- Collection -->
+        <div id="fhtml-collection" style="display:none;">
+          <div class="tool-row">
+            <div style="flex:1;"><label>Input directory (HTML files)</label><input type="text" id="tool-fhtml-c-input" style="width:100%;" placeholder="e.g. ./html_pages" /></div>
+          </div>
+          <div class="tool-row">
+            <div style="flex:1;"><label>Output directory</label><input type="text" id="tool-fhtml-c-output" style="width:100%;" placeholder="e.g. ./md_output" /></div>
+          </div>
+          <button class="tool-run-btn" onclick="runFromHtml('mdfromhtml-collection')">▶ Build collection</button>
+        </div>
+        <!-- Merge -->
+        <div id="fhtml-merge" style="display:none;">
+          <div class="tool-row">
+            <div style="flex:1;"><label>Input directory (converted .md files)</label><input type="text" id="tool-fhtml-m-input" style="width:100%;" placeholder="e.g. ./md_output" /></div>
+          </div>
+          <div class="tool-row">
+            <div style="flex:1;"><label>Output file (optional)</label><input type="text" id="tool-fhtml-m-output" style="width:100%;" placeholder="defaults to book.md" /></div>
+          </div>
+          <div class="tool-row">
+            <div>
+              <label>TOC depth</label>
+              <select id="tool-fhtml-m-toc">
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+          </div>
+          <div class="tool-check"><input type="checkbox" id="tool-fhtml-m-norefs"><label for="tool-fhtml-m-norefs">Skip original reference links</label></div>
+          <div class="tool-check"><input type="checkbox" id="tool-fhtml-m-noemph"><label for="tool-fhtml-m-noemph">Don't convert emphasis markers</label></div>
+          <div class="tool-check"><input type="checkbox" id="tool-fhtml-m-notables"><label for="tool-fhtml-m-notables">Don't format tables</label></div>
+          <div class="tool-row">
+            <div style="flex:1;"><label>Images destination (optional)</label><input type="text" id="tool-fhtml-m-imgdest" style="width:100%;" placeholder="e.g. ./img" /></div>
+          </div>
+          <button class="tool-run-btn" onclick="runFromHtml('mdfromhtml-merge')">▶ Merge book</button>
+        </div>
+        <div class="tool-output" id="tool-mdfromhtml-out"></div>
+      </div>
+    </div>
+
+  </section>
+
+</div>
+
+</main>
+</div>
+
+<script src="assets/llm_config.js"></script>
+<script src="assets/es_test.js"></script>
+
+<!-- Local video viewer modal -->
+<div class="vmodal-overlay" id="vmodal-overlay" style="display:none;" onclick="if(event.target===this)closeVideoModal()">
+  <div class="vmodal">
+    <button class="vmodal-close" onclick="closeVideoModal()">✕</button>
+    <video id="vmodal-video" controls playsinline></video>
+  </div>
+</div>
+
+<!-- YouTube viewer modal -->
+<div class="ytmodal-overlay" id="ytmodal-overlay" style="display:none;" onclick="if(event.target===this)closeYTModal()">
+  <div class="ytmodal">
+    <button class="ytmodal-close" onclick="closeYTModal()">✕</button>
+    <iframe id="ytmodal-iframe" src="about:blank" title="Video player" allowfullscreen
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+  </div>
+</div>
+
+<!-- File viewer modal -->
+<div class="fmodal-overlay" id="fmodal-overlay" style="display:none;" onclick="if(event.target===this)closeFModal()">
+  <div class="fmodal">
+    <div class="fmodal-hdr">
+      <span class="fmodal-title" id="fmodal-title"></span>
+      <span class="fmodal-ext"  id="fmodal-ext"></span>
+      <button class="fmodal-maximize" id="fmodal-max-btn" onclick="toggleFModalMaximize()" title="Maximize / Restore">⛶</button>
+      <button class="secondary" onclick="closeFModal()" style="padding:4px 10px;">✕</button>
+    </div>
+    <!-- File viewer tabs (Text always visible; View shown for PDF/HTML/MD/images) -->
+    <div class="fmodal-tabs" id="fmodal-tabs" style="display:none;">
+      <div class="fmodal-tab active" data-tab="text" onclick="switchFModalTab('text')">Text</div>
+      <div class="fmodal-tab" id="fmodal-view-tab" data-tab="view" onclick="switchFModalTab('view')">View</div>
+    </div>
+    <div class="fmodal-body" id="fmodal-body">
+      <pre id="fmodal-pre"></pre>
+      <iframe id="fmodal-pdf" class="fmodal-pdf-frame" title="File viewer" src="about:blank"></iframe>
+      <div id="fmodal-preview" class="fmodal-preview"></div>
+    </div>
+    <div class="fmodal-actions">
+      <button class="secondary" id="fmodal-vlc-btn" style="display:none;" onclick="fmodalPlayVlc()">▶ Play</button>
+      <button class="secondary" onclick="closeFModal()">Close</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
