@@ -129,7 +129,7 @@ cd Course-catalog-generator
 | Node.js 18+, pandoc, ffmpeg (tools menu) | brew | package manager | winget |
 | *Optional:* VLC, Tesseract OCR | `--with-extras` | `--with-extras` | `--with-extras` |
 
-Then it opens the app at <http://localhost:5000>. On first start `backend/env.py` is created from [`backend/env.example.py`](backend/env.example.py).
+Then it opens the app at <http://127.0.0.1:5000>. On first start `backend/env.py` is created from [`backend/env.example.py`](backend/env.example.py).
 
 ```bash
 ./start.sh --no-system-install     # don't install anything system-wide; just start what is installed

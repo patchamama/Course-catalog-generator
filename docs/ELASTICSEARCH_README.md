@@ -578,7 +578,7 @@ python es_indexer.py --path "../test" --reset
 
 Los campos de URL en la sidebar son editables:
 
-- **Backend URL**: `http://localhost:5000` (Flask)
+- **Backend URL**: `http://127.0.0.1:5000` (Flask)
 - **Elasticsearch URL**: `http://127.0.0.1:9200` (Docker)
 
 ---

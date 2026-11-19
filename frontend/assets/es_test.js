@@ -813,7 +813,7 @@ function stHtml(report) {
   html += `</div>`;
 
   // — curl examples ————————————————————————————————————————————————————————
-  const backendUrl = (document.getElementById('api-url')?.value || 'http://localhost:5000').replace(/\/$/, '');
+  const backendUrl = (document.getElementById('api-url')?.value || 'http://127.0.0.1:5000').replace(/\/$/, '');
   const curlExamples = [
     ['BM25 full-text search (multilingual)',
      `curl -s "${ES_URL}/${IDX}/_search" -H "Content-Type: application/json" -d '{"query":{"multi_match":{"query":"<query>","fields":["content"],"type":"best_fields"}},"size":5,"_source":["filename","rel_path","content"]}'`],
@@ -1331,7 +1331,13 @@ async function svcAction(service, action) {
   if (msgEl) msgEl.textContent = action === 'start' ? 'Starting…' : 'Stopping…';
   try {
     const r = await fetch(`${apiUrl()}/api/services/${service}/${action}`, { method: 'POST' });
-    const d = await r.json();
+    let d;
+    try { d = await r.json(); }
+    catch (_) {
+      // Empty / non-JSON body: usually another program answers on this port
+      // (e.g. macOS AirPlay Receiver on :5000 when the URL is "localhost").
+      throw new Error(`HTTP ${r.status} with no JSON — is ${apiUrl()} the catalog backend? Use http://127.0.0.1:5000`);
+    }
     if (msgEl) msgEl.textContent = d.output || (d.ok ? '✓ done' : '✗ failed');
     // Poll twice: once after 1 s, again after 6 s (ES takes a moment to start)
     setTimeout(updateSvcStatus, 1200);
@@ -2413,7 +2419,7 @@ async function mgInit() {
   const info = document.getElementById('mg-info');
   try {
     const r = await fetch(apiUrl() + '/api/migrate/info', { signal: AbortSignal.timeout(20000) });
-    if (r.status === 403) throw new Error('Open the console from http://localhost:5000 (export / import is localhost-only).');
+    if (r.status === 403) throw new Error('Open the console from http://127.0.0.1:5000 (export / import is localhost-only).');
     const d = await r.json();
     const dir = document.getElementById('mg-export-dir');
     if (!dir.value) dir.value = localStorage.getItem('cc_mg_export_dir') || d.exports_dir;

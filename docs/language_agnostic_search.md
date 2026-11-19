@@ -394,14 +394,14 @@ Tras cada fase, ejecutar contra el corpus de prueba:
 
 ```bash
 # Probar ES→DE con mE5-small
-curl "http://localhost:5000/api/es-search?q=cómo+archivar+documentos+ELO&semantic=1"
-curl "http://localhost:5000/api/es-search?q=delegación+vacaciones+grupo&hybrid=1"
+curl "http://127.0.0.1:5000/api/es-search?q=cómo+archivar+documentos+ELO&semantic=1"
+curl "http://127.0.0.1:5000/api/es-search?q=delegación+vacaciones+grupo&hybrid=1"
 
 # Probar RAG (Etapa 1+2 cuando esté implementado)
-curl "http://localhost:5000/api/ask?q=¿Cómo+gestionar+permisos+de+usuario+en+ELO?&lang=es&k=5"
+curl "http://127.0.0.1:5000/api/ask?q=¿Cómo+gestionar+permisos+de+usuario+en+ELO?&lang=es&k=5"
 
 # Probar off-topic (verificar que min_score filtre)
-curl "http://localhost:5000/api/es-search?q=recetas+cocina+italiana&min_score=0.75&semantic=1"
+curl "http://127.0.0.1:5000/api/es-search?q=recetas+cocina+italiana&min_score=0.75&semantic=1"
 ```
 
 ---

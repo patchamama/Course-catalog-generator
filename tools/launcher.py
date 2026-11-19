@@ -581,7 +581,7 @@ def main() -> None:
         "║  Startup Launcher                    ║\n"
         "╚══════════════════════════════════════╝\n"
         f"  Startup UI : http://localhost:{args.launcher_port}/\n"
-        f"  Backend    : http://localhost:{args.backend_port}/\n"
+        f"  Backend    : http://127.0.0.1:{args.backend_port}/\n"
         "\n"
         "  If the browser does not open automatically,\n"
         f"  navigate to: http://localhost:{args.launcher_port}/\n"

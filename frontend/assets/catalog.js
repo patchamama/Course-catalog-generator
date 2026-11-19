@@ -3,10 +3,10 @@
 // ── API URL ───────────────────────────────────────────────────────────────────
 // Returns the Flask backend base URL (no trailing slash).
 // Reads from #api-url input if present (search-console.html), otherwise falls back to
-// localhost:5000 (chat.html which has no such input).
+// 127.0.0.1:5000 (chat.html which has no such input).
 function apiUrl() {
   const el = document.getElementById('api-url');
-  return (el ? el.value : 'http://localhost:5000').replace(/\/$/, '') || 'http://localhost:5000';
+  return (el ? el.value : 'http://127.0.0.1:5000').replace(/\/$/, '') || 'http://127.0.0.1:5000';
 }
 
 // ── HTML escaping ─────────────────────────────────────────────────────────────
