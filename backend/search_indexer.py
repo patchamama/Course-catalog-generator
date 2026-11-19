@@ -33,6 +33,8 @@ Usage:
 """
 
 import os
+# The Hugging Face 'xet' downloader can stall at 0 B/s on some networks; the plain HTTP one is reliable.
+os.environ.setdefault('HF_HUB_DISABLE_XET', '1')
 import sys
 import re
 import time

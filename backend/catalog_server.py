@@ -13,6 +13,13 @@ See CATALOG_SERVER_README.md for full documentation.
 # Optional (improves extraction): PyMuPDF (fitz), python-docx, openpyxl, python-pptx, striprtf, beautifulsoup4, chardet
 
 import os
+# The Hugging Face 'xet' downloader can stall at 0 B/s on some networks; the plain HTTP one is reliable.
+os.environ.setdefault('HF_HUB_DISABLE_XET', '1')
+if hasattr(os, 'uname') and os.uname().sysname == 'Darwin':
+    # faiss-cpu, torch and scipy each ship their own libomp; loaded together they segfault in an OpenMP worker.
+    os.environ.setdefault('KMP_DUPLICATE_LIB_OK', 'TRUE')
+    # ...and torch/scipy/faiss together still crash when OpenMP spawns worker threads: use none (override with OMP_NUM_THREADS).
+    os.environ.setdefault('OMP_NUM_THREADS', '1')
 import sys
 import re
 import json
@@ -1672,6 +1679,15 @@ _faiss_lock     = threading.Lock()
 _faiss_building = False
 
 
+def _faiss_one_thread(faiss) -> None:
+    """macOS: keep faiss' OpenMP pool to one thread so it cannot clash with torch's libomp."""
+    if os.uname().sysname == 'Darwin' if hasattr(os, 'uname') else False:
+        try:
+            faiss.omp_set_num_threads(1)
+        except Exception:  # noqa: BLE001 — optional hardening
+            pass
+
+
 def _load_faiss_index() -> bool:
     """Load FAISS index from disk. Returns True on success."""
     global _faiss_index, _faiss_chunks
@@ -1679,6 +1695,7 @@ def _load_faiss_index() -> bool:
         return False
     try:
         import faiss
+        _faiss_one_thread(faiss)
     except ImportError:
         return False
     try:
@@ -1699,6 +1716,7 @@ def _build_faiss_index():
     global _faiss_index, _faiss_chunks, _faiss_building
     try:
         import faiss
+        _faiss_one_thread(faiss)
         import numpy as np
     except ImportError:
         log.warning("faiss-cpu not installed — FAISS fallback disabled. Run: pip install faiss-cpu")
