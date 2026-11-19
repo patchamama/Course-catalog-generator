@@ -41,7 +41,8 @@ fi
 # ── Find Python 3.9+ ─────────────────────────────────────────────────────────
 find_python() {
   local cmd ver major minor
-  for cmd in python3 python3.13 python3.12 python3.11 python3.10 python3.9 python; do
+  # Prefer 3.12/3.13: some dependencies (onnxruntime -> fastembed) ship no wheels for the newest Pythons.
+  for cmd in python3.12 python3.13 python3.11 python3.10 python3 python3.9 python; do
     if command -v "$cmd" &>/dev/null; then
       ver=$("$cmd" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null) || continue
       major="${ver%%.*}"

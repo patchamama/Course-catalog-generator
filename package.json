@@ -1,6 +1,6 @@
 {
   "name": "_course_catalog_generator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A full-stack tool to index, search, and chat with your course content using Elasticsearch and local LLMs (via Ollama).",
   "main": "index.js",
   "directories": {

@@ -65,6 +65,14 @@ exit /b 0
 :: ---------------------------------------------------------------------------
 :find_python
 set "PYTHON="
+:: prefer 3.12 / 3.13: some dependencies (onnxruntime -> fastembed) have no wheels for the newest Pythons
+for %%V in (3.12 3.13 3.11 3.10) do (
+  if "!PYTHON!"=="" (
+    where py >nul 2>&1 && (
+      for /f "delims=" %%P in ('py -%%V -c "import sys;print(sys.executable)" 2^>nul') do set "PYTHON=%%P"
+    )
+  )
+)
 for %%C in (python3 python py) do (
   if "!PYTHON!"=="" (
     where %%C >nul 2>&1 && (
