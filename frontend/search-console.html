@@ -570,6 +570,7 @@
             <label>Directory path <span style="font-weight:400;color:var(--muted)">(new folder, or click a saved one to reuse its options)</span></label>
             <div style="display:flex;gap:6px;">
               <input type="text" id="tool-idx-path" placeholder="e.g. /path/to/courses" style="width:100%;min-width:0;" />
+              <button type="button" class="secondary" onclick="openFolderPicker('tool-idx-path')" title="Browse folders on this machine" style="white-space:nowrap;">📁 Browse…</button>
               <button type="button" class="secondary" onclick="addScanFolder()" title="Save this folder in the list without scanning it" style="white-space:nowrap;">＋ Save</button>
             </div>
           </div>
@@ -1125,6 +1126,28 @@
     <button class="ytmodal-close" onclick="closeYTModal()">✕</button>
     <iframe id="ytmodal-iframe" src="about:blank" title="Video player" allowfullscreen
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+  </div>
+</div>
+
+<!-- Folder picker modal -->
+<div class="fmodal-overlay" id="fpick-overlay" style="display:none;" onclick="if(event.target===this)closeFolderPicker()">
+  <div class="fmodal" style="width:560px;max-width:95vw;height:70vh;">
+    <div class="fmodal-hdr">
+      <span class="fmodal-title">📁 Choose a folder</span>
+      <button class="secondary" onclick="closeFolderPicker()" style="padding:4px 10px;">✕</button>
+    </div>
+    <div id="fpick-roots" style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px 0;"></div>
+    <div style="display:flex;gap:6px;padding:8px 16px;">
+      <button type="button" class="secondary" id="fpick-up" onclick="fpickUp()" title="Parent folder">↑</button>
+      <input type="text" id="fpick-path" style="flex:1;min-width:0;" onkeydown="if(event.key==='Enter')fpickLoad(this.value)" />
+      <button type="button" class="secondary" onclick="fpickLoad(document.getElementById('fpick-path').value)">Go</button>
+    </div>
+    <div id="fpick-list" style="flex:1;overflow:auto;padding:0 16px;font-size:13px;"></div>
+    <div id="fpick-err" style="color:#f87171;font-size:12px;padding:0 16px;"></div>
+    <div class="fmodal-actions">
+      <button type="button" onclick="fpickChoose()">Select this folder</button>
+      <button type="button" class="secondary" onclick="closeFolderPicker()">Cancel</button>
+    </div>
   </div>
 </div>
 

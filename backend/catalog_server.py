@@ -3532,7 +3532,7 @@ def tools_search_paths():
 
     if request.method == 'POST':
         data = request.get_json(force=True) or {}
-        new_path = data.get('path', '').strip()
+        new_path = _clean_path(data.get('path'))
         if not new_path:
             return jsonify({"error": "path is required"}), 400
         if not Path(new_path).is_dir():
@@ -3551,7 +3551,7 @@ def tools_search_paths():
     if request.method == 'DELETE':
         import re as _re
         data = request.get_json(force=True) or {}
-        rm_path = data.get('path', '').strip()
+        rm_path = _clean_path(data.get('path'))
         if not rm_path:
             return jsonify({"error": "path is required"}), 400
         resolved = Path(rm_path).resolve()
@@ -3612,7 +3612,7 @@ def tools_reindex():
 def tools_generate_catalog():
     """Generate course catalog HTML from a given path."""
     data = request.get_json(force=True) or {}
-    courses_path = data.get('path', '').strip()
+    courses_path = _clean_path(data.get('path'))
     if not courses_path:
         return jsonify({"error": "path is required"}), 400
 
@@ -3800,7 +3800,7 @@ def _tool_cli_args(tool: str, o: dict) -> list:
 def tools_index_directory():
     """Index a new directory into Elasticsearch (incremental or full reset)."""
     data = request.get_json(force=True) or {}
-    path = data.get('path', '').strip()
+    path = _clean_path(data.get('path'))
     if not path:
         return jsonify({"error": "path is required"}), 400
     if not Path(path).is_dir():
@@ -3894,7 +3894,7 @@ def scan_paths():
     reg = _scan_registry()
     if request.method == 'POST':
         data = request.get_json(force=True) or {}
-        path = str(data.get('path', '')).strip()
+        path = _clean_path(data.get('path'))
         if not path:
             return jsonify({"error": "path is required"}), 400
         if not Path(path).is_dir():
@@ -4087,7 +4087,7 @@ def scan_paths_item(entry_id):
         return jsonify({"ok": True, "removed": e['path'], "deleted_chunks": deleted})
 
     data = request.get_json(force=True) or {}
-    payload, status = _relocate_paths(e['path'], data.get('path', ''), bool(data.get('dry_run')), entry_id)
+    payload, status = _relocate_paths(e['path'], _clean_path(data.get('path')), bool(data.get('dry_run')), entry_id)
     if payload.get('unchanged'):
         payload['entry'] = e
     return jsonify(payload), status
@@ -4138,6 +4138,58 @@ def _default_exports_dir() -> str:
 def _loopback_only():
     if (request.remote_addr or '') not in ('127.0.0.1', '::1', '::ffff:127.0.0.1'):
         abort(403, 'Export / import is only allowed from this machine (localhost).')
+
+
+def _clean_path(value) -> str:
+    """User-typed folder path: trim spaces and surrounding quotes (e.g. pasted from a shell or Finder)."""
+    v = str(value or '').strip()
+    while len(v) >= 2 and v[0] == v[-1] and v[0] in '\'"':
+        v = v[1:-1].strip()
+    return v
+
+
+def list_subdirs(path: str = '') -> dict:
+    """Folder-picker data: the sub-folders of `path` (home when empty). Dirs only, hidden ones skipped."""
+    path = _clean_path(path)
+    p = Path(os.path.expanduser(path)) if path else Path.home()
+    p = p.resolve()
+    if not p.is_dir():
+        raise NotADirectoryError(str(p))
+    dirs = []
+    try:
+        for e in sorted(os.scandir(p), key=lambda x: x.name.lower()):
+            if e.name.startswith('.'):
+                continue
+            try:
+                if e.is_dir():
+                    dirs.append({'name': e.name, 'path': str(Path(e.path))})
+            except OSError:
+                continue
+    except PermissionError:
+        pass
+    roots = [{'name': 'Home', 'path': str(Path.home())}]
+    if sys.platform == 'win32':
+        import string
+        roots += [{'name': f'{d}:\\', 'path': f'{d}:\\'} for d in string.ascii_uppercase
+                  if os.path.exists(f'{d}:\\')]
+    else:
+        roots.append({'name': '/', 'path': '/'})
+        if os.path.isdir('/Volumes'):
+            roots.append({'name': 'Volumes', 'path': '/Volumes'})
+    parent = str(p.parent) if p.parent != p else ''
+    return {'path': str(p), 'parent': parent, 'dirs': dirs, 'roots': roots}
+
+
+@app.route('/api/fs/list')
+def api_fs_list():
+    """Browse server-side folders for the "Directory path" picker (this machine only)."""
+    _loopback_only()
+    try:
+        return jsonify(list_subdirs(request.args.get('path', '')))
+    except (NotADirectoryError, FileNotFoundError):
+        return jsonify({'error': 'Not a folder: ' + request.args.get('path', '')}), 404
+    except OSError as e:
+        return jsonify({'error': str(e)}), 400
 
 
 def _migrate_busy() -> str:

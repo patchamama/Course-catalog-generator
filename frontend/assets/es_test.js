@@ -3092,3 +3092,40 @@ function restoreAskOptions() {
 
   await refreshStatus();
 })();
+
+
+// ── Folder picker (Directory path → Browse…) ─────────────────────────────────
+// Browsers never expose absolute paths, so the folders are listed by the backend (/api/fs/list).
+let _fpickTarget = null, _fpickCur = '', _fpickParent = '';
+
+function openFolderPicker(inputId) {
+  _fpickTarget = inputId;
+  document.getElementById('fpick-overlay').style.display = 'flex';
+  fpickLoad((document.getElementById(inputId)?.value || '').trim());
+}
+function closeFolderPicker() { document.getElementById('fpick-overlay').style.display = 'none'; }
+function fpickUp() { if (_fpickParent) fpickLoad(_fpickParent); }
+function fpickChoose() {
+  const el = document.getElementById(_fpickTarget);
+  if (el && _fpickCur) { el.value = _fpickCur; el.dispatchEvent(new Event('input', { bubbles: true })); }
+  closeFolderPicker();
+}
+async function fpickLoad(path) {
+  const err = document.getElementById('fpick-err'), list = document.getElementById('fpick-list');
+  err.textContent = '';
+  try {
+    const r = await fetch(`${apiUrl()}/api/fs/list?path=${encodeURIComponent(path || '')}`);
+    let d; try { d = await r.json(); } catch (_) { throw new Error(`HTTP ${r.status}: backend not reachable at ${apiUrl()}`); }
+    if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+    _fpickCur = d.path; _fpickParent = d.parent;
+    document.getElementById('fpick-path').value = d.path;
+    document.getElementById('fpick-up').disabled = !d.parent;
+    const btn = (label, p) => `<button type="button" class="secondary" style="padding:2px 8px;font-size:12px;" data-p="${escHtml(p).replace(/"/g,'&quot;')}">${escHtml(label)}</button>`;
+    document.getElementById('fpick-roots').innerHTML = d.roots.map(x => btn(x.name, x.path)).join('');
+    list.innerHTML = d.dirs.length
+      ? d.dirs.map(x => `<div class="fpick-row" style="padding:5px 4px;cursor:pointer;border-bottom:1px solid var(--border);" data-p="${escHtml(x.path).replace(/"/g,'&quot;')}">📁 ${escHtml(x.name)}</div>`).join('')
+      : '<div style="color:var(--muted);padding:8px 4px;">No sub-folders</div>';
+    for (const el of document.querySelectorAll('#fpick-roots [data-p], #fpick-list [data-p]'))
+      el.onclick = () => fpickLoad(el.dataset.p);
+  } catch (e) { err.textContent = e.message; }
+}
