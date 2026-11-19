@@ -2203,6 +2203,43 @@ async function refreshScanFolder(id) {
   }
 }
 
+let _sfAllRunning = false;
+// "Update all": incremental re-scan of every saved folder, strictly one after another
+// (parallel indexers would fight over Elasticsearch and the embedding model).
+async function refreshAllScanFolders() {
+  if (_sfAllRunning) return;
+  if (_idxEvt) { toolOut('tool-idx-out', 'Indexing already in progress. Please wait.'); return; }
+  const todo = _scanFolders.filter(f => f.exists !== false && !f.running);
+  const skipped = _scanFolders.length - todo.length;
+  if (!todo.length) { toolOut('tool-idx-out', 'No folder can be updated right now (missing on disk or already running).'); return; }
+  if (!confirm(`Re-scan ${todo.length} folder(s), one after another (incremental: only new / changed files)?` +
+               (skipped ? `\n\n${skipped} folder(s) skipped (not found on disk or already running).` : ''))) return;
+  _sfAllRunning = true;
+  const btn = document.getElementById('sf-all-btn'); if (btn) btn.disabled = true;
+  const results = [];
+  try {
+    for (let i = 0; i < todo.length; i++) {
+      const f = todo[i];
+      toolOut('tool-idx-out', `[${i + 1}/${todo.length}] Re-scanning ${f.path} (incremental)…\n`);
+      _setIndexBusy(true); _showActiveBanner(`Updating folder ${i + 1}/${todo.length}…`);
+      try {
+        const r = await fetch(apiUrl() + `/api/tools/scan-paths/${f.id}/refresh`, { method: 'POST' });
+        const d = await r.json();
+        if (!r.ok) { results.push(`✗ ${f.path}: ${d.error || r.status}`); _setIndexBusy(false); _hideActiveBanner(); continue; }
+        _followIndexTask(d.task_id);
+        while (_idxEvt) await new Promise(res => setTimeout(res, 800));   // clear() runs when the task ends
+        results.push(`✓ ${f.path}`);
+      } catch (e) { results.push(`✗ ${f.path}: ${e.message}`); _setIndexBusy(false); _hideActiveBanner(); }
+      await new Promise(res => setTimeout(res, 1100));                    // task ids are per-second
+    }
+  } finally {
+    _sfAllRunning = false; if (btn) btn.disabled = false;
+    _hideActiveBanner();
+    toolOut('tool-idx-out', `Update all finished (${todo.length} folder(s)):\n` + results.join('\n') + (skipped ? `\n– ${skipped} skipped` : ''));
+    loadScanFolders();
+  }
+}
+
 async function _sfPut(id, body) {
   const r = await fetch(apiUrl() + '/api/tools/scan-paths/' + id, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -2500,7 +2537,7 @@ function mgPollJob(id, resumed) {
       if (j.status !== 'running') {
         clearInterval(_mgPoll); _mgPoll = null; busy(false);
         mgLoadExports();
-        if (j.kind === 'import' && j.status === 'done') mgShowRemap(j.result.folders || []);
+        if (j.kind === 'import' && j.status === 'done') { mgShowModel(j.result.manifest || {}); mgShowRemap(j.result.folders || []); }
         if (typeof refreshStatus === 'function') refreshStatus();
         loadScanFolders();
       }
@@ -3128,4 +3165,51 @@ async function fpickLoad(path) {
     for (const el of document.querySelectorAll('#fpick-roots [data-p], #fpick-list [data-p]'))
       el.onclick = () => fpickLoad(el.dataset.p);
   } catch (e) { err.textContent = e.message; }
+}
+
+
+// ── Imported index: embedding model check ────────────────────────────────────
+async function mgShowModel(manifest) {
+  const box = document.getElementById('mg-model'), e = escapeHtml;
+  if (!box) return;
+  if (!manifest.embedding_model) {
+    box.innerHTML = '<div class="mo-sub">No embedding model recorded in the archive (no manifest) — make sure this machine uses the same one as the source.</div>';
+    return;
+  }
+  try {
+    const r = await fetch(`${apiUrl()}/api/migrate/model-check?model=${encodeURIComponent(manifest.embedding_model)}&dims=${manifest.vector_dims || ''}`);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+    if (d.matches) { box.innerHTML = `<div class="mo-sub" style="color:var(--green)">✓ The imported index was built with <code>${e(d.model)}</code> — same model as this machine.</div>`; return; }
+    if (!d.supported) { box.innerHTML = `<div class="mo-row" style="color:var(--red)">The index was built with <code>${e(d.model)}</code>, which this app does not support. Semantic search will not match; re-index with <code>${e(d.active)}</code>.</div>`; return; }
+    box.innerHTML = `<div class="mo-sec">🧠 Embedding model differs</div>` +
+      `<div class="mo-sub" style="margin-bottom:6px">The imported index was built with <code>${e(d.model)}</code> (${d.dims} dims); this machine uses <code>${e(d.active)}</code>. ` +
+      `Semantic / hybrid search needs the same model. It is downloaded first if missing (needs internet).</div>` +
+      `<button class="secondary mo-btn" id="mg-model-btn">Download (if missing) &amp; use ${e(d.model)}</button> <span id="mg-model-out" class="mo-sub"></span>`;
+    document.getElementById('mg-model-btn').onclick = () => mgApplyModel(d.model);
+  } catch (err) { box.innerHTML = `<div class="mo-row" style="color:var(--red)">${e(err.message)}</div>`; }
+}
+
+async function mgApplyModel(model) {
+  const out = document.getElementById('mg-model-out'), btn = document.getElementById('mg-model-btn');
+  if (!confirm(`Switch this machine's embedding model to\n${model}\n\n(it is downloaded first if missing). Continue?`)) return;
+  btn.disabled = true; out.textContent = 'Preparing…';
+  try {
+    const r = await fetch(apiUrl() + '/api/migrate/model-apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+    for (let i = 0; i < 2400; i++) {
+      await new Promise(res => setTimeout(res, 1500));
+      let st = await (await fetch(apiUrl() + '/api/migrate/model-status')).json();
+      if (st.state === 'idle') {
+        // The dev auto-reloader restarts the backend when env.py changes and forgets the job: ask the config instead.
+        const c = await (await fetch(apiUrl() + '/api/tools/config')).json();
+        st = c.embedding_model === model ? { state: 'done' } : { state: 'running' };
+      }
+      if (st.state === 'running') { out.textContent = `Downloading / loading… ${(i + 1) * 1.5}s`; continue; }
+      out.innerHTML = st.state === 'done' ? `<span style="color:var(--green)">✓ Now using ${escapeHtml(model)}</span>` : `<span style="color:var(--red)">${escapeHtml(st.error)}</span>`;
+      if (st.state !== 'done') btn.disabled = false;
+      return;
+    }
+  } catch (err) { out.innerHTML = `<span style="color:var(--red)">${escapeHtml(err.message)}</span>`; btn.disabled = false; }
 }

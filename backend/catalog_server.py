@@ -4302,6 +4302,83 @@ def migrate_folders():
     return jsonify({'folders': roots})
 
 
+def embedding_model_report(model: str, vector_dims=None) -> dict:
+    """Compare the embedding model recorded in an import manifest with the one this backend uses."""
+    model = (model or '').strip()
+    cfg = _MODEL_CONFIG.get(model)
+    rep = {'model': model, 'active': _EMBEDDING_MODEL, 'matches': model == _EMBEDDING_MODEL,
+           'supported': cfg is not None, 'dims': (cfg or {}).get('dims'), 'vector_dims': vector_dims,
+           'dims_mismatch': bool(cfg and vector_dims and int(vector_dims) != cfg['dims'])}
+    rep.update({k: v for k, v in _models_info().hf_cache_info(model).items() if k in ('cached', 'size_h')} if model else {})
+    return rep
+
+
+_model_apply = {'state': 'idle', 'model': '', 'error': ''}
+_model_apply_lock = threading.Lock()
+
+
+def _download_embedder(model: str) -> None:
+    """Load the model once so the library downloads it into the Hugging Face cache."""
+    if model in _ST_ONLY_MODELS:
+        from sentence_transformers import SentenceTransformer
+        SentenceTransformer(model)
+    else:
+        from fastembed import TextEmbedding
+        TextEmbedding(model)
+
+
+def _set_embedding_model(new_model: str) -> None:
+    """Make `new_model` the active embedding model (env.py + memory). A reindex is NOT needed for imported data."""
+    import re as _re
+    global _EMBEDDING_MODEL, _NORMALIZE_EMBEDDING_CASE, _MODEL_IS_MULTILINGUAL, _es_embed_model
+    env_file = Path(__file__).parent / 'env.py'
+    content = env_file.read_text(encoding='utf-8')
+    line = f'EMBEDDING_MODEL = "{new_model}"'
+    pat = r'^EMBEDDING_MODEL\s*=\s*["\'].*?["\']'
+    content = _re.sub(pat, line, content, count=1, flags=_re.MULTILINE) if _re.search(pat, content, flags=_re.MULTILINE) \
+        else content + f'\n{line}\n'
+    env_file.write_text(content, encoding='utf-8')
+    cfg = _MODEL_CONFIG[new_model]
+    _EMBEDDING_MODEL, _NORMALIZE_EMBEDDING_CASE = new_model, cfg['normalize_case']
+    _MODEL_IS_MULTILINGUAL = cfg.get('multilingual', False)
+    _es_embed_model = None  # reload lazily with the new model
+
+
+@app.route('/api/migrate/model-check')
+def migrate_model_check():
+    _loopback_only()
+    return jsonify(embedding_model_report(request.args.get('model', ''), request.args.get('dims')))
+
+
+@app.route('/api/migrate/model-apply', methods=['POST'])
+def migrate_model_apply():
+    """Download (if needed) and activate the embedding model an imported index was built with."""
+    _loopback_only()
+    model = str((request.get_json(silent=True) or {}).get('model', '')).strip()
+    if model not in _MODEL_CONFIG:
+        return jsonify({'error': f'Unsupported model: {model or "(none)"}'}), 400
+    with _model_apply_lock:
+        if _model_apply['state'] == 'running':
+            return jsonify({'error': 'A model is already being prepared.'}), 409
+        _model_apply.update(state='running', model=model, error='')
+
+    def _run():
+        try:
+            _download_embedder(model)  # no-op when fully cached; completes partial caches
+            _set_embedding_model(model)
+            _model_apply['state'] = 'done'
+        except Exception as e:  # noqa: BLE001 — surfaced to the UI
+            _model_apply.update(state='failed', error=f'{type(e).__name__}: {e}')
+    threading.Thread(target=_run, name='model-apply', daemon=True).start()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/migrate/model-status')
+def migrate_model_status():
+    _loopback_only()
+    return jsonify(dict(_model_apply))
+
+
 @app.route('/api/migrate/remap', methods=['POST'])
 def migrate_remap():
     """Point the chunks of an old folder (from the other machine) at its location on THIS machine."""
