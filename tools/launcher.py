@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import queue
 import re
 import socket
@@ -345,6 +346,18 @@ def setup_sequence(args: argparse.Namespace) -> None:
                 [sys.executable, "-m", "venv", str(venv_dir)],
                 capture_output=True, text=True,
             )
+            # Debian / Ubuntu ship the venv module as a separate package: install it and retry once
+            if (r.returncode != 0 and sys.platform.startswith("linux") and not args.no_system_install
+                    and any(k in (r.stderr or "") + (r.stdout or "") for k in ("ensurepip", "python3-venv", "No module named"))):
+                try:
+                    sys.path.insert(0, str(Path(__file__).parent))
+                    import prereqs
+                    if prereqs.ensure_python_venv(log):
+                        shutil.rmtree(venv_dir, ignore_errors=True)       # drop the half-built environment
+                        r = subprocess.run([sys.executable, "-m", "venv", str(venv_dir)],
+                                           capture_output=True, text=True)
+                except Exception as e:
+                    log(f"⚠ Could not install python3-venv automatically: {e}", "warning")
             if r.returncode != 0:
                 set_status("deps", "error", "venv creation failed")
                 err_out = (r.stderr or r.stdout or "")
@@ -486,31 +499,50 @@ def setup_sequence(args: argparse.Namespace) -> None:
     set_status("backend", "ok", f"Running on :{args.backend_port}")
     log(f"✓ Backend ready at {backend_url}")
 
-    # ── 4. Elasticsearch (optional) ───────────────────────────────────────────
+    # ── 4. System requirements: Docker, Ollama, Node.js, pandoc, ffmpeg (+ VLC / Tesseract with --with-extras) ──
+    # Missing ones are installed with the system package manager (Homebrew / apt / winget) unless
+    # --no-system-install is given; a failure is only a warning — the app still starts without them.
+    try:
+        sys.path.insert(0, str(Path(__file__).parent))
+        import prereqs
+        set_status("elasticsearch", "checking", "Checking system requirements…")
+        set_status("ollama", "checking", "Checking system requirements…")
+        log("Checking system requirements (Docker, Ollama, Node.js, pandoc, ffmpeg) …")
+        prereqs.ensure_system(log, with_extras=args.with_extras, install_missing=not args.no_system_install,
+                              status=set_status)
+    except Exception as e:                                # never block the app on the installer
+        prereqs = None
+        log(f"⚠ System-requirement check failed: {e}", "warning")
+
+    # ── 5. Elasticsearch: start it (Docker) if it is not answering ────────────
     set_status("elasticsearch", "checking")
-    log("  Probing Elasticsearch at http://127.0.0.1:9200/ …")
     t0 = time.monotonic()
     es_ok = _probe("http://127.0.0.1:9200/", timeout=3.0)
-    log(f"  Elasticsearch probe: {'ok' if es_ok else 'no response'} ({time.monotonic()-t0:.1f}s)")
+    if not es_ok and prereqs is not None and prereqs.is_present("docker"):
+        set_status("elasticsearch", "checking", "Starting Elasticsearch (Docker)…")
+        es_ok = prereqs.ensure_elasticsearch(log)
+    log(f"  Elasticsearch: {'ok' if es_ok else 'not available'} ({time.monotonic()-t0:.1f}s)")
     if es_ok:
         set_status("elasticsearch", "ok", "Connected :9200")
-        log("✓ Elasticsearch detected on :9200")
+        log("✓ Elasticsearch ready on :9200")
     else:
         set_status("elasticsearch", "warning", "Not running (optional)")
-        log("⚠ Elasticsearch not found — advanced search disabled. Start with: deploy/start-docker.sh", "warning")
+        log("⚠ Elasticsearch is not running — advanced search is disabled. Install Docker and re-run, or start it with "
+            "`docker compose -f deploy/docker-compose.yml up -d elasticsearch`.", "warning")
 
-    # ── 5. Ollama (optional) ──────────────────────────────────────────────────
+    # ── 6. Ollama: start it if installed ──────────────────────────────────────
     set_status("ollama", "checking")
-    log("  Probing Ollama at http://127.0.0.1:11434/ …")
     t0 = time.monotonic()
     ollama_ok = _probe("http://127.0.0.1:11434/", timeout=3.0)
-    log(f"  Ollama probe: {'ok' if ollama_ok else 'no response'} ({time.monotonic()-t0:.1f}s)")
+    if not ollama_ok and prereqs is not None:
+        ollama_ok = prereqs.ensure_ollama_running(log)
+    log(f"  Ollama: {'ok' if ollama_ok else 'not available'} ({time.monotonic()-t0:.1f}s)")
     if ollama_ok:
         set_status("ollama", "ok", "Running :11434")
-        log("✓ Ollama detected on :11434")
+        log("✓ Ollama ready on :11434 (install models from Search Console › Tools › Ollama Model Installer)")
     else:
         set_status("ollama", "warning", "Not running (optional)")
-        log("⚠ Ollama not found — AI Chat/RAG disabled. Install from https://ollama.com/", "warning")
+        log("⚠ Ollama not found — local chat is disabled (external LLMs still work). Install from https://ollama.com/", "warning")
 
     # ── Done ──────────────────────────────────────────────────────────────────
     log("✓ Application ready!", "success")
@@ -536,6 +568,11 @@ def main() -> None:
                         help="Do not open the browser automatically")
     parser.add_argument("--no-install", action="store_true",
                         help="Skip automatic pip install of dependencies")
+    parser.add_argument("--no-system-install", action="store_true",
+                        help="Do not install system requirements (Docker, Ollama, Node.js, pandoc, ffmpeg); "
+                             "still starts the ones that are installed")
+    parser.add_argument("--with-extras", action="store_true",
+                        help="Also install VLC (video player buttons) and Tesseract (OCR)")
     args = parser.parse_args()
 
     banner = (
