@@ -72,7 +72,17 @@ Everything runs on your machine. Your documents never have to leave it.
 - **Ollama model installer** with search of the official library (sizes, ☁ cloud models).
 - **Export / Import index** — pack the Elasticsearch volume into one archive and restore it on another machine (see [below](#-index-on-a-fast-machine-use-it-anywhere)).
 - **OCR extract** — PDFs and images → text with PyMuPDF, PDFMiner, Tesseract, EasyOCR, PaddleOCR or an **Ollama vision** model.
-- **Video & Markdown helpers** *(optional companions)* — YouTube downloader, PDF collector, Markdown translator / splitter / formatter / image downloader, HTML → Markdown converter. The menu launches them if they are present next to the project; **they are not bundled in this repository**.
+- **Video & Markdown tools** — each lives in its own folder with a README and tests, and is launched from the Tools menu:
+
+  | Tool | Folder | What it does | Needs |
+  |---|---|---|---|
+  | ▶️ **YouTube downloader** | [`_youtube_downloader`](_youtube_downloader) | Videos and/or subtitles (also a small web UI) via `yt-dlp` | `yt-dlp` (in requirements), `ffmpeg` |
+  | 📑 **PDF collector** | [`_pdf_collector`](_pdf_collector) | Gather the PDFs of a tree; optionally merge each folder's PDFs into one | PyMuPDF |
+  | ✂️ **mdsplit** | [`_mdsplit`](_mdsplit) | Split a Markdown file by heading level, with a table of contents | – |
+  | 🧹 **mdformater** | [`_mdformater`](_mdformater) | Normalise Markdown (headings, lists, spacing) — preview or in place | Node.js 18+ |
+  | 🖼️ **mdImageDownloader** | [`_mdImageDownloader`](_mdImageDownloader) | Download remote images and relink them locally | Node.js 18+ |
+  | 🌐 **mdtranslator** | [`_mdtranslator`](_mdtranslator) | Split a document into translatable segments (code & links protected) and rebuild it | Node.js 18+ |
+  | 🔁 **mdfromhtml** | [`_mdfromhtml`](_mdfromhtml) | HTML (Articulate Rise lessons) → Markdown, batch collections, merge into one book | Node.js 18+, `pandoc` |
 - Background workers for **translation** to a canonical language and **analytics**.
 
 ---
@@ -99,8 +109,6 @@ flowchart LR
 
 ## 🚀 Quick start
 
-**Requirements:** Python 3.9+, Docker (for Elasticsearch), and [Ollama](https://ollama.com) if you want local answers.
-
 ```bash
 git clone https://github.com/patchamama/Course-catalog-generator.git
 cd Course-catalog-generator
@@ -109,10 +117,34 @@ cd Course-catalog-generator
 ./start.sh                           start.bat
 ```
 
-The launcher opens a progress page, creates a virtualenv, installs the dependencies, checks Elasticsearch and Ollama, starts the backend and opens the app at <http://localhost:5000>. On first start `backend/env.py` is created from [`backend/env.example.py`](backend/env.example.py) — set your folders there (or just use **Tools › Index Directory**).
+**That's the only command you need.** The start script gets everything running and installs what is missing:
+
+| Step | macOS | Ubuntu / Linux | Windows |
+|---|---|---|---|
+| Python 3.9+ (and `python3-venv`) | Homebrew | `apt` / `dnf` / `pacman` | `winget` |
+| Python packages (`.venv`) | ✅ automatic | ✅ automatic | ✅ automatic |
+| **Docker** (runs Elasticsearch) | Docker Desktop (brew cask) | `docker.io` + compose, service enabled | Docker Desktop (winget) |
+| **Elasticsearch** container | ✅ started with `docker compose` (first run downloads ~600 MB) | ✅ | ✅ |
+| **Ollama** (local LLMs) | `brew install ollama` | official installer / `pacman` | winget |
+| Node.js 18+, pandoc, ffmpeg (tools menu) | brew | package manager | winget |
+| *Optional:* VLC, Tesseract OCR | `--with-extras` | `--with-extras` | `--with-extras` |
+
+Then it opens the app at <http://localhost:5000>. On first start `backend/env.py` is created from [`backend/env.example.py`](backend/env.example.py).
 
 ```bash
-# Elasticsearch only (Docker)
+./start.sh --no-system-install     # don't install anything system-wide; just start what is installed
+./start.sh --with-extras           # also VLC and Tesseract
+./start.sh --no-browser            # headless
+python3 tools/prereqs.py --plan    # show what is missing and the exact commands, installs nothing
+```
+
+- Installs use `sudo` only on Linux and only when needed (you may be asked for your password). **Homebrew** (macOS) and **winget** (Windows) must already exist — the script never installs a package manager itself; if one is missing it tells you where to get it.
+- A failed optional install is a **warning**, not an error: the app still starts (without that feature).
+- Docker Desktop asks you to accept its terms the first time it runs; if it isn't ready after a few minutes the script says so — open it once and run the script again.
+- Pulling Ollama models is deliberately **not** automatic (several GB): use *Tools › Ollama Model Installer*.
+
+```bash
+# Elasticsearch only, by hand
 docker compose -f deploy/docker-compose.yml up -d elasticsearch
 
 # Full Docker stack (Elasticsearch + backend + indexer)
@@ -120,9 +152,6 @@ docker compose -f deploy/docker-compose.yml up -d elasticsearch
 ```
 
 Then open **Search Console → Tools → Index Directory**, pick a folder, and index it. Open **Chat** to ask questions.
-
-> **Ubuntu:** `sudo apt install python3-venv` if the launcher asks for it, and make sure your user is in the `docker` group.
-> **macOS:** `brew install python@3.12`; Docker Desktop for Elasticsearch; install **Ollama natively** (Docker on macOS cannot use the GPU).
 
 ---
 
@@ -172,6 +201,7 @@ backend/      Flask server, indexer, RAG, rerank, LLM providers, export/import, 
 frontend/     search-console.html · chat.html · ocr-extract.html · startup.html · assets/
 deploy/       docker-compose.yml, Dockerfile, start-docker.sh/.bat, setup scripts
 tools/        launcher (visual startup), desktop wrapper, packaging (PyInstaller)
+_youtube_downloader/  _pdf_collector/  _mdsplit/  _mdformater/  _mdImageDownloader/  _mdtranslator/  _mdfromhtml/   companion tools (Tools menu)
 docs/         server API, Elasticsearch setup, search architecture, LLM models
 tests/        benchmark & regression scripts (embedding model comparison, search quality)
 ```
