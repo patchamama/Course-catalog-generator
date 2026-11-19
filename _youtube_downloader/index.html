@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YouTube Downloader</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    :root{
+      --bg:#f3f5fb;
+      --bg-soft:#ffffff;
+      --bg-elev:#f8fafd;
+      --text:#11192b;
+      --muted:#6b7385;
+      --border:#e2e7f1;
+      --border-strong:#cdd5e6;
+      --accent:#4f7cff;
+      --accent-2:#7aa0ff;
+      --accent-soft:#e8efff;
+      --success:#16a34a;
+      --success-soft:#dcfce7;
+      --warn:#f59e0b;
+      --danger:#ef4444;
+      --shadow-sm:0 1px 2px rgba(18,34,68,.06);
+      --shadow:0 8px 24px rgba(18,34,68,.08);
+      --shadow-lg:0 24px 60px rgba(18,34,68,.12);
+      --radius:14px;
+      --radius-lg:20px;
+    }
+    body.dark{
+      --bg:#0a0e17;
+      --bg-soft:#141a26;
+      --bg-elev:#1b2231;
+      --text:#e9edf6;
+      --muted:#9da7bf;
+      --border:#222b3d;
+      --border-strong:#2f3a52;
+      --accent:#7fa1ff;
+      --accent-2:#a8c0ff;
+      --accent-soft:#1a2647;
+      --success:#22c55e;
+      --success-soft:#0c3a1d;
+      --shadow:0 10px 30px rgba(0,0,0,.4);
+      --shadow-lg:0 24px 60px rgba(0,0,0,.55);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:'Inter','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+      background:
+        radial-gradient(1200px 600px at 80% -10%, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 60%),
+        radial-gradient(900px 500px at -10% 10%, color-mix(in srgb, var(--accent-2) 16%, transparent) 0%, transparent 55%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      -webkit-font-smoothing:antialiased;
+    }
+    .container{max-width:1240px;margin:0 auto;padding:24px 22px 80px}
+
+    /* ===== HERO ===== */
+    .hero{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:8px 4px 22px;gap:16px;flex-wrap:wrap;
+    }
+    .brand{display:flex;align-items:center;gap:14px}
+    .brand-logo{
+      width:44px;height:44px;border-radius:12px;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      display:flex;align-items:center;justify-content:center;
+      color:#fff;font-size:22px;box-shadow:var(--shadow);
+    }
+    .brand-title{margin:0;font-size:1.45rem;font-weight:700;letter-spacing:-.02em}
+    .brand-sub{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+    .brand-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
+    .version-badge{
+      display:inline-flex;align-items:center;gap:5px;width:max-content;
+      color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%, var(--border));
+      border-radius:999px;padding:3px 9px;font-size:.74rem;font-weight:700;letter-spacing:.02em;
+    }
+    .toggle{
+      border:1px solid var(--border);background:var(--bg-soft);color:var(--text);
+      border-radius:999px;padding:9px 16px;cursor:pointer;font-size:.9rem;
+      display:inline-flex;align-items:center;gap:8px;transition:all .15s;
+    }
+    .toggle:hover{border-color:var(--border-strong);transform:translateY(-1px)}
+
+    /* ===== INPUT CARD ===== */
+    .card{
+      border:1px solid var(--border);border-radius:var(--radius-lg);
+      padding:22px;background:var(--bg-soft);box-shadow:var(--shadow);
+    }
+    .section-label{
+      font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;
+      color:var(--muted);font-weight:600;margin:0 0 8px;
+    }
+    .field{margin-bottom:16px}
+    .field label{font-size:.88rem;color:var(--muted);display:block;margin-bottom:6px;font-weight:500}
+    textarea,input[type=text],input:not([type]),select{
+      width:100%;border:1px solid var(--border);background:var(--bg-elev);color:var(--text);
+      border-radius:12px;padding:11px 13px;font-size:.94rem;font-family:inherit;transition:all .15s;
+    }
+    textarea{resize:vertical;min-height:120px;font-family:'JetBrains Mono','SF Mono',Menlo,monospace;font-size:.88rem}
+    textarea:focus,input:focus,select:focus{
+      outline:none;border-color:var(--accent);background:var(--bg-soft);
+      box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+    }
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+
+    /* ===== LANGUAGE CHIPS ===== */
+    .lang-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+    .lang-chip{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 14px;border:1.5px solid var(--border);border-radius:999px;
+      background:var(--bg-elev);cursor:pointer;font-size:.88rem;font-weight:500;
+      transition:all .15s;user-select:none;color:var(--text);
+    }
+    .lang-chip:hover{border-color:var(--accent-2);transform:translateY(-1px)}
+    .lang-chip.active{
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      border-color:transparent;color:#fff;box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 40%, transparent);
+    }
+    .lang-chip .flag{font-size:1.05rem;line-height:1}
+    .lang-chip input{display:none}
+
+    /* ===== OPTION TOGGLES ===== */
+    .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:6px}
+    .opt{
+      display:flex;align-items:center;gap:10px;padding:11px 14px;
+      border:1px solid var(--border);border-radius:12px;background:var(--bg-elev);
+      cursor:pointer;font-size:.9rem;transition:all .15s;color:var(--text);
+    }
+    .opt:hover{border-color:var(--border-strong)}
+    .opt input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+    .opt .icon{font-size:1.05rem;opacity:.85}
+
+    /* ===== RUN BUTTON ===== */
+    .run-row{display:flex;justify-content:flex-end;margin-top:18px;gap:10px}
+    .btn-primary{
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      color:#fff;border:none;border-radius:12px;padding:12px 24px;
+      font-weight:600;font-size:.95rem;cursor:pointer;
+      box-shadow:0 6px 20px color-mix(in srgb,var(--accent) 35%, transparent);
+      transition:transform .12s,box-shadow .12s;display:inline-flex;align-items:center;gap:8px;
+    }
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 45%, transparent)}
+    .btn-primary:active{transform:translateY(0)}
+    .btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    pre#status{
+      background:var(--bg-elev);border:1px solid var(--border);border-radius:12px;
+      padding:12px 14px;max-height:220px;overflow:auto;font-size:.82rem;margin:14px 0 0;
+      white-space:pre-wrap;word-break:break-word;
+    }
+    pre#status:empty{display:none}
+
+    /* ===== PROGRESS PANEL ===== */
+    .progress{
+      margin-top:14px;border:1px solid var(--border);border-radius:14px;
+      background:var(--bg-elev);overflow:hidden;
+    }
+    .progress.hidden{display:none}
+    .progress-head{
+      display:flex;align-items:center;gap:12px;padding:12px 14px;
+      background:var(--bg-soft);border-bottom:1px solid var(--border);
+    }
+    .progress-title{font-size:.92rem;font-weight:600;display:flex;align-items:center;gap:8px}
+    .progress-counts{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+    .progress-sp{flex:1}
+    .progress-close{
+      border:none;background:transparent;color:var(--muted);font-size:1.1rem;cursor:pointer;
+      padding:2px 8px;border-radius:6px;
+    }
+    .progress-close:hover{background:var(--bg-elev);color:var(--text)}
+    .progress-bar-wrap{height:6px;background:var(--border);overflow:hidden}
+    .progress-bar{
+      height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      width:0%;transition:width .25s ease;
+    }
+    .progress-bar.done{background:linear-gradient(90deg,var(--success),#22c55e)}
+    .progress-bar.error{background:linear-gradient(90deg,var(--danger),#f87171)}
+    .progress-items{max-height:280px;overflow:auto;padding:4px}
+    .pitem{
+      display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;
+      font-size:.85rem;border-left:3px solid var(--border);margin:2px 0;background:var(--bg-soft);
+    }
+    .pitem .pstate{
+      width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+      font-size:.7rem;background:var(--border);color:var(--text);font-weight:bold;flex-shrink:0;
+    }
+    .pitem .ptext{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono','SF Mono',monospace;font-size:.78rem}
+    .pitem .pmini{
+      flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;max-width:140px;
+    }
+    .pitem .pmini > span{display:block;height:100%;background:var(--accent);transition:width .2s;width:0%}
+    .pitem .ppct{font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums;min-width:36px;text-align:right}
+    .pitem.running{border-left-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%, var(--bg-soft))}
+    .pitem.running .pstate{background:var(--accent);color:#fff}
+    .pitem.ok{border-left-color:var(--success);background:color-mix(in srgb,var(--success) 8%, var(--bg-soft))}
+    .pitem.ok .pstate{background:var(--success);color:#fff}
+    .pitem.error{border-left-color:var(--danger);background:color-mix(in srgb,var(--danger) 8%, var(--bg-soft))}
+    .pitem.error .pstate{background:var(--danger);color:#fff}
+    .pitem .perr{font-size:.74rem;color:var(--danger);margin-left:6px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* ===== FILES SECTION ===== */
+    .files-header{
+      display:flex;align-items:center;justify-content:space-between;
+      margin:36px 0 16px;gap:12px;flex-wrap:wrap;
+    }
+    .files-title{margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+    .files-count{font-size:.85rem;color:var(--muted);font-weight:500;background:var(--bg-elev);padding:3px 10px;border-radius:999px;border:1px solid var(--border)}
+    .toolbar{
+      display:grid;grid-template-columns:minmax(220px,2fr) minmax(160px,1fr) minmax(360px,1.6fr) auto;gap:10px;
+      background:var(--bg-soft);border:1px solid var(--border);border-radius:14px;
+      padding:8px;margin-bottom:18px;box-shadow:var(--shadow-sm);align-items:center;
+    }
+    .toolbar input,.toolbar select{margin:0;background:transparent;border:none;padding:8px 12px}
+    .toolbar input:focus,.toolbar select:focus{box-shadow:none}
+    .content-filter{
+      display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 4px;
+      border-left:1px solid var(--border);border-right:1px solid var(--border);
+    }
+    .content-filter-label{font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
+    .filter-chip{
+      display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);
+      border-radius:999px;padding:6px 9px;font-size:.78rem;color:var(--text);
+      cursor:pointer;background:var(--bg-elev);user-select:none;transition:all .15s;
+    }
+    .filter-chip:hover{border-color:var(--accent-2);transform:translateY(-1px)}
+    .filter-chip input{width:14px;height:14px;margin:0;accent-color:var(--accent)}
+    @media (max-width: 980px){
+      .toolbar{grid-template-columns:1fr}
+      .content-filter{border-left:none;border-right:none;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px 4px}
+    }
+
+    .files-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px}
+    .empty{
+      grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted);
+      border:2px dashed var(--border);border-radius:var(--radius-lg);
+    }
+    .cards-loading{
+      grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      min-height:240px;gap:12px;color:var(--muted);
+      border:2px dashed var(--border);border-radius:var(--radius-lg);background:var(--bg-soft);
+    }
+    .spinner{
+      width:42px;height:42px;border-radius:50%;
+      border:4px solid var(--border);border-top-color:var(--accent);
+      animation:spin .8s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ===== VIDEO CARD ===== */
+    .vcard{
+      background:var(--bg-soft);border:1px solid var(--border);
+      border-radius:var(--radius-lg);overflow:hidden;
+      box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s,border-color .15s;
+      display:flex;flex-direction:column;position:relative;
+    }
+    .vcard:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);border-color:var(--border-strong)}
+    .vcard.selected{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%, transparent),var(--shadow)}
+    .vcard-select{
+      position:absolute;top:10px;left:10px;z-index:4;width:26px;height:26px;
+      border-radius:8px;border:2px solid #fff;background:rgba(0,0,0,.55);
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      color:#fff;font-weight:bold;font-size:14px;transition:all .15s;backdrop-filter:blur(4px);
+    }
+    .vcard-select:hover{background:rgba(0,0,0,.75);transform:scale(1.05)}
+    .vcard-select.on{background:var(--accent);border-color:var(--accent)}
+
+    .bulkbar{
+      display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+      background:var(--bg-soft);border:1px solid var(--border);border-radius:14px;
+      padding:10px 14px;margin-bottom:14px;box-shadow:var(--shadow-sm);
+    }
+    .bulkbar.hidden{display:none}
+    .bulkbar-info{font-size:.88rem;color:var(--text);font-weight:500;display:flex;align-items:center;gap:8px}
+    .bulkbar-info .pill{background:var(--accent);color:#fff;padding:2px 9px;border-radius:999px;font-size:.78rem;font-weight:600;font-variant-numeric:tabular-nums}
+    .bulkbar-sp{flex:1}
+    .bulk-btn{
+      border:1px solid var(--border);background:var(--bg-elev);color:var(--text);
+      padding:7px 12px;border-radius:9px;font-size:.85rem;cursor:pointer;
+      display:inline-flex;align-items:center;gap:6px;font-weight:500;transition:all .15s;
+    }
+    .bulk-btn:hover{border-color:var(--accent);color:var(--accent)}
+    .bulk-btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border-color:transparent}
+    .bulk-btn.primary:hover{color:#fff;transform:translateY(-1px)}
+    .bulk-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .vcard-media{
+      position:relative;aspect-ratio:16/9;background:#000;overflow:hidden;
+    }
+    .vcard-cover{
+      position:absolute;inset:0;background-size:cover;background-position:center;
+      display:flex;align-items:center;justify-content:center;cursor:pointer;
+    }
+    .vcard-cover::after{
+      content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.65) 100%);
+    }
+    .vcard-play{
+      width:62px;height:62px;border-radius:50%;border:none;cursor:pointer;
+      background:rgba(255,255,255,.95);color:#1d2433;font-size:22px;font-weight:bold;
+      display:flex;align-items:center;justify-content:center;z-index:2;
+      box-shadow:0 8px 28px rgba(0,0,0,.45);transition:transform .15s;
+    }
+    .vcard-play:hover{transform:scale(1.08)}
+    .vcard-yt-link{
+      position:absolute;top:10px;right:10px;z-index:3;
+      background:rgba(0,0,0,.7);color:#fff;border-radius:999px;padding:6px 10px;
+      font-size:.78rem;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px;
+    }
+    .vcard-yt-link:hover{background:#cc0000;text-decoration:none}
+    .vcard-delete{
+      position:absolute;top:10px;right:64px;z-index:4;
+      width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;
+      background:rgba(0,0,0,.55);color:#fff;font-size:13px;
+      display:flex;align-items:center;justify-content:center;
+      transition:all .15s;backdrop-filter:blur(4px);
+    }
+    .vcard-delete:hover{background:var(--danger);transform:scale(1.08)}
+    .bulk-btn.danger{background:linear-gradient(135deg,var(--danger),#f87171);color:#fff;border-color:transparent}
+    .bulk-btn.danger:hover{color:#fff;transform:translateY(-1px)}
+    .vcard-duration{
+      position:absolute;bottom:10px;right:10px;z-index:3;
+      background:rgba(0,0,0,.8);color:#fff;border-radius:6px;padding:3px 7px;
+      font-size:.78rem;font-weight:600;font-variant-numeric:tabular-nums;
+    }
+    .vcard-media iframe,.vcard-media video,.vcard-media audio{
+      position:absolute;inset:0;width:100%;height:100%;background:#000;border:none;
+    }
+    .vcard-audio{width:100%;height:38px;display:block;background:var(--bg-elev)}
+
+    .vcard-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+    .vcard-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+    .type-badges{display:flex;gap:4px}
+    .tbadge{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:22px;height:22px;border-radius:6px;font-size:.78rem;
+      background:var(--accent-soft);color:var(--accent);
+    }
+    .tbadge.has{background:var(--success-soft);color:var(--success)}
+    .vcard-title{
+      margin:0;font-size:.98rem;font-weight:600;line-height:1.35;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+      overflow:hidden;color:var(--text);
+    }
+    .vcard-sub{font-size:.78rem;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .chip{
+      font-size:.74rem;padding:3px 9px;border-radius:999px;
+      border:1px solid var(--border);color:var(--muted);background:var(--bg-elev);
+    }
+    .chip.topic{background:var(--accent-soft);border-color:transparent;color:var(--accent);font-weight:500}
+
+    /* ===== ACTION ICONS ===== */
+    .actions{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(56px,1fr));gap:6px;
+      margin-top:4px;
+    }
+    .act{
+      position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+      gap:3px;padding:8px 4px 6px;border-radius:10px;border:1px solid var(--border);
+      background:var(--bg-elev);cursor:pointer;transition:all .15s;
+      color:var(--muted);min-height:54px;font-family:inherit;
+    }
+    .act:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+    .act .act-icon{font-size:1.15rem;line-height:1}
+    .act .act-label{font-size:.66rem;font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+    .act .act-meta{
+      position:absolute;top:-7px;right:-4px;font-size:.62rem;
+      background:var(--text);color:var(--bg-soft);
+      padding:1px 5px;border-radius:6px;font-weight:600;
+      font-variant-numeric:tabular-nums;line-height:1.3;
+      white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;
+    }
+    .act.have{
+      border-color:var(--success);background:var(--success-soft);color:var(--success);
+    }
+    .act.have:hover{border-color:var(--success);color:var(--success);box-shadow:0 4px 12px color-mix(in srgb,var(--success) 25%, transparent)}
+    .act.have .act-meta{background:var(--success);color:#fff}
+    .act.placeholder{
+      border-color:var(--warn);background:color-mix(in srgb,var(--warn) 15%, var(--bg-elev));color:var(--warn);
+    }
+    .act.placeholder .act-meta{background:var(--warn);color:#fff}
+    .act.busy{opacity:.6;cursor:wait}
+    .act-row{display:flex;flex-direction:column;gap:6px}
+    .act-group-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin:6px 0 2px}
+
+    .sublangs{display:flex;flex-wrap:wrap;gap:6px}
+    .sublang{
+      position:relative;display:inline-flex;align-items:center;gap:5px;
+      padding:5px 10px 5px 8px;border-radius:999px;border:1px solid var(--border);
+      background:var(--bg-elev);cursor:pointer;font-size:.78rem;
+      color:var(--muted);transition:all .15s;font-weight:500;
+    }
+    .sublang:hover{border-color:var(--accent);color:var(--accent)}
+    .sublang.have{border-color:var(--success);background:var(--success-soft);color:var(--success);font-weight:600}
+    .sublang .flag{font-size:.95rem;line-height:1}
+    .sublang .lmeta{font-size:.65rem;background:var(--text);color:var(--bg-soft);padding:0 5px;border-radius:5px;font-weight:600;font-variant-numeric:tabular-nums}
+    .sublang.have .lmeta{background:var(--success);color:#fff}
+
+    @media (max-width: 900px){
+      .grid-2{grid-template-columns:1fr}
+      .toolbar{grid-template-columns:1fr}
+      .files-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- HERO -->
+    <header class="hero">
+      <div class="brand">
+        <div class="brand-logo">▶</div>
+        <div>
+          <h1 class="brand-title">YouTube Downloader</h1>
+          <p class="brand-sub" data-i18n="brandSub">Descarga videos, subtítulos y audio con un click.</p>
+          <div class="brand-meta">
+            <span class="version-badge" title="Application version">v<span id="appVersion">…</span></span>
+          </div>
+        </div>
+      </div>
+      <button id="langToggle" class="toggle" title="Cambiar idioma / Change language">🌐 <span id="langLabel">ES</span></button>
+      <button id="themeToggle" class="toggle"><span id="themeIcon">🌙</span> <span id="themeLabel">Modo oscuro</span></button>
+    </header>
+
+    <!-- INPUT -->
+    <div class="card">
+      <div class="field">
+        <p class="section-label" data-i18n="inputSection">📋 Entrada</p>
+        <label for="urls" data-i18n="urlsLabel">URLs o IDs de YouTube (uno por línea)</label>
+        <textarea id="urls" placeholder="dQw4w9WgXcQ&#10;PLxxxxxxxx&#10;https://youtu.be/..."></textarea>
+      </div>
+
+      <div class="field">
+        <label for="topic" data-i18n="topicLabel">Tema / Categoría</label>
+        <input id="topic" data-i18n-placeholder="topicPlaceholder" placeholder="Ej: Música, Cursos, Podcasts..." />
+      </div>
+
+      <div class="field">
+        <p class="section-label" data-i18n="subtitleLanguages">🌐 Idiomas de subtítulos</p>
+        <div class="lang-grid" id="langGrid"></div>
+      </div>
+
+      <div class="field">
+        <p class="section-label" data-i18n="optionsSection">⚙️ Opciones</p>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" id="download_video" checked /><span class="icon">🎬</span> <span data-i18n="downloadVideoOpt">Descargar video (.mp4)</span></label>
+          <label class="opt"><input type="checkbox" id="mp3" /><span class="icon">🎵</span> <span data-i18n="extractMp3Opt">Extraer MP3</span></label>
+          <label class="opt"><input type="checkbox" id="only_mp3" /><span class="icon">🎧</span> <span data-i18n="onlyMp3Opt">Solo MP3 (sin video)</span></label>
+          <label class="opt"><input type="checkbox" id="description" /><span class="icon">📝</span> <span data-i18n="descriptionOpt">Descripción</span></label>
+          <label class="opt"><input type="checkbox" id="split_mp3" /><span class="icon">✂️</span> <span data-i18n="splitMp3Opt">Dividir por índice de descripción MP3</span></label>
+          <label class="opt"><input type="checkbox" id="split_video" /><span class="icon">🎞️</span> <span data-i18n="splitVideoOpt">Dividir por índice de descripción video</span></label>
+          <label class="opt"><input type="checkbox" id="subtitle_only_placeholder" checked /><span class="icon">📦</span> <span data-i18n="placeholderOpt">Placeholder .mp4 vacío</span></label>
+        </div>
+      </div>
+
+      <details class="field" style="margin-top:6px">
+        <summary style="cursor:pointer;color:var(--muted);font-size:.88rem;font-weight:500;margin-bottom:8px" data-i18n="advancedCookies">🔐 Cookies avanzadas (archivo o texto)</summary>
+        <div class="grid-2">
+          <div>
+            <label for="cookies_file" data-i18n="uploadCookies">Subir cookies.txt</label>
+            <input id="cookies_file" type="file" accept=".txt,.cookies" />
+          </div>
+          <div>
+            <label for="cookies_text" data-i18n="pasteCookies">Cookies Netscape (pegar)</label>
+            <textarea id="cookies_text" rows="3" placeholder="# Netscape HTTP Cookie File" style="min-height:60px"></textarea>
+          </div>
+        </div>
+      </details>
+
+      <div class="run-row">
+        <button id="run" class="btn-primary" data-i18n="processDownload">⬇️ Procesar descarga</button>
+      </div>
+      <div id="progress" class="progress hidden">
+        <div class="progress-head">
+          <div class="progress-title" id="progressTitle" data-i18n="processing">⏳ Procesando...</div>
+          <div class="progress-counts" id="progressCounts">0 / 0</div>
+          <div class="progress-sp"></div>
+          <button class="progress-close" id="progressClose" data-i18n-title="hide" title="Ocultar">✕</button>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="progress-items" id="progressItems"></div>
+      </div>
+      <pre id="status"></pre>
+    </div>
+
+    <!-- FILES -->
+    <div class="files-header">
+      <h2 class="files-title"><span data-i18n="filesTitle">📁 Archivos</span> <span class="files-count" id="filesCount">0</span></h2>
+    </div>
+    <div class="toolbar">
+      <input id="search" data-i18n-placeholder="searchPlaceholder" placeholder="🔍 Buscar por título o ID..." />
+      <select id="topicFilter"><option value="" data-i18n="allTopics">Todos los temas</option></select>
+      <div class="content-filter" role="group" aria-label="Filtrar por contenido">
+        <label class="filter-chip"><input type="checkbox" name="contentFilter" value="video" /> <span data-i18n="filterVideos">🎬 Videos</span></label>
+        <label class="filter-chip"><input type="checkbox" name="contentFilter" value="subtitle" /> <span data-i18n="filterSubtitles">💬 Subtítulos</span></label>
+        <label class="filter-chip"><input type="checkbox" name="contentFilter" value="mp3" /> <span data-i18n="filterMp3">🎵 MP3</span></label>
+        <label class="filter-chip"><input type="checkbox" name="contentFilter" value="placeholder" /> <span data-i18n="filterPlaceholders">📦 Placeholder</span></label>
+      </div>
+      <button class="bulk-btn primary" id="assignFilteredTopic" type="button" data-i18n="assignFilteredTopic">🏷️ Asignar tema a filtrados</button>
+    </div>
+    <div id="bulkbar" class="bulkbar hidden">
+      <div class="bulkbar-info">
+        <span class="pill" id="bulkCount">0</span>
+        <span data-i18n="selectedLabel">seleccionados</span>
+      </div>
+      <button class="bulk-btn" id="bulkSelectAll" type="button" data-i18n="selectAll">☑ Todos</button>
+      <button class="bulk-btn" id="bulkClear" type="button" data-i18n="clear">✕ Limpiar</button>
+      <label class="opt" style="padding:7px 10px;margin:0;font-size:.82rem">
+        <input type="checkbox" id="bulkCompress" />
+        <span class="icon">🗜️</span> <span data-i18n="compressResult">Comprimir resultado</span>
+      </label>
+      <span class="bulkbar-sp"></span>
+      <button class="bulk-btn primary" id="bulkVideo" type="button" disabled data-i18n="videos">🎬 Videos</button>
+      <button class="bulk-btn primary" id="bulkMp3" type="button" disabled>🎵 MP3</button>
+      <button class="bulk-btn primary" id="bulkSubs" type="button" disabled data-i18n="subtitles">💬 Subtítulos</button>
+      <button class="bulk-btn primary" id="bulkPlaceholders" type="button" disabled data-i18n="noContent">📦 Sin contenido</button>
+      <button class="bulk-btn danger" id="bulkDelete" type="button" disabled data-i18n="delete">🗑 Eliminar</button>
+    </div>
+    <div id="files" class="files-grid"></div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let APP_VERSION = '…';
+    const body = document.body;
+    let searchDirty = false, topicDirty = false;
+    const selection = new Set();
+    let lastGroups = [];
+    let uiLang = localStorage.getItem('uiLang') || 'es';
+
+    const I18N = {
+      es: {
+        brandSub:'Descarga videos, subtítulos y audio con un click.',
+        inputSection:'📋 Entrada', urlsLabel:'URLs o IDs de YouTube (uno por línea)',
+        topicLabel:'Tema / Categoría', topicPlaceholder:'Ej: Música, Cursos, Podcasts...',
+        subtitleLanguages:'🌐 Idiomas de subtítulos', optionsSection:'⚙️ Opciones',
+        downloadVideoOpt:'Descargar video (.mp4)', extractMp3Opt:'Extraer MP3', onlyMp3Opt:'Solo MP3 (sin video)',
+        descriptionOpt:'Descripción', splitMp3Opt:'Dividir por índice de descripción MP3', splitVideoOpt:'Dividir por índice de descripción video', placeholderOpt:'Placeholder .mp4 vacío',
+        advancedCookies:'🔐 Cookies avanzadas (archivo o texto)', uploadCookies:'Subir cookies.txt', pasteCookies:'Cookies Netscape (pegar)',
+        processDownload:'⬇️ Procesar descarga', processing:'⏳ Procesando...', hide:'Ocultar',
+        filesTitle:'📁 Archivos', searchPlaceholder:'🔍 Buscar por título o ID...', allTopics:'Todos los temas',
+        contentFilter:'Contenido', filterVideos:'🎬 Videos', filterSubtitles:'💬 Subtítulos', filterMp3:'🎵 MP3', filterPlaceholders:'📦 Placeholder',
+        assignFilteredTopic:'🏷️ Asignar tema a seleccionados', selectedLabel:'seleccionados', selectAll:'☑ Todos', clear:'✕ Limpiar',
+        compressResult:'Zip', videos:'🎬 Videos', subtitles:'💬 Subtítulos', noContent:'📦 Sin contenido', delete:'🗑 Eliminar',
+        darkMode:'Modo oscuro', lightMode:'Modo claro', completed:'✓ Completado', completedErrors:'⚠ Completado con {n} error(es)',
+        folderReady:'📁 Carpeta preparada: downloads/{folder}', filesGrouped:'📄 Archivos agrupados: {n}', zipReady:'🗜️ ZIP listo: {url}',
+        downloadZip:'Descargar ZIP', noFiles:'Sin archivos todavía. Pegá una URL arriba y descargá tu primer video.',
+        enterTopic:'Escribí el tema para asignar a los elementos seleccionados:', noFiltered:'No hay elementos seleccionados con ID de video.',
+        assignConfirm:'¿Asignar el tema "{topic}" a {n} elemento(s) seleccionado(s)?', assignedTopic:'🏷️ Tema asignado: {topic} · Archivos movidos: {n}',
+        assignTopicError:'No se pudo asignar el tema.', markedLang:'Marcá al menos un idioma arriba.', selectAtLeastOne:'Seleccioná al menos un elemento.',
+        processDownloadIdle:'⬇️ Procesar descarga', subtitlesGroup:'Subtítulos', subtitleCount:'{n} subtítulo(s)',
+        deleteVideoTitle:'Eliminar todos los archivos de este video', downloadSub:'Descargar {lang} — {size}', downloadSubtitle:'Descargar subtítulo {lang}',
+        selectForBulk:'Seleccionar para acción masiva', availableDownload:'Disponible — descargar ({meta})', emptyPlaceholder:'Placeholder vacío',
+        downloadLabel:'Descargar {label}', deleteOneConfirm:'¿Eliminar todos los archivos de "{label}"?\n\nEsto borra video, MP3, subtítulos y thumbnail si existen. No se puede deshacer.',
+        deleteManyConfirm:'¿Eliminar TODOS los archivos de {n} videos seleccionados?\n\nEsto borra video, MP3, subtítulos y thumbnail de cada uno. No se puede deshacer.',
+        deletedCount:'🗑 Eliminados: {n} archivo(s)', invalidIds:' · IDs inválidos: {ids}', processingDownload:'⏳ Procesando descarga...',
+        videoLabel:'Video', placeholderLabel:'Placeholder', thumbLabel:'Miniatura', loadingCards:'Cargando cards...'
+      },
+      en: {
+        brandSub:'Download videos, subtitles, and audio in one click.',
+        inputSection:'📋 Input', urlsLabel:'YouTube URLs or IDs (one per line)',
+        topicLabel:'Topic / Category', topicPlaceholder:'E.g. Music, Courses, Podcasts...',
+        subtitleLanguages:'🌐 Subtitle languages', optionsSection:'⚙️ Options',
+        downloadVideoOpt:'Download video (.mp4)', extractMp3Opt:'Extract MP3', onlyMp3Opt:'MP3 only (no video)',
+        descriptionOpt:'Description', splitMp3Opt:'Split by description index MP3', splitVideoOpt:'Split by description index video', placeholderOpt:'Empty .mp4 placeholder',
+        advancedCookies:'🔐 Advanced cookies (file or text)', uploadCookies:'Upload cookies.txt', pasteCookies:'Netscape cookies (paste)',
+        processDownload:'⬇️ Process download', processing:'⏳ Processing...', hide:'Hide',
+        filesTitle:'📁 Files', searchPlaceholder:'🔍 Search by title or ID...', allTopics:'All topics',
+        contentFilter:'Content', filterVideos:'🎬 Videos', filterSubtitles:'💬 Subtitles', filterMp3:'🎵 MP3', filterPlaceholders:'📦 Placeholder',
+        assignFilteredTopic:'🏷️ Assign topic to selected', selectedLabel:'selected', selectAll:'☑ All', clear:'✕ Clear',
+        compressResult:'Zip', videos:'🎬 Videos', subtitles:'💬 Subtitles', noContent:'📦 No content', delete:'🗑 Delete',
+        darkMode:'Dark mode', lightMode:'Light mode', completed:'✓ Completed', completedErrors:'⚠ Completed with {n} error(s)',
+        folderReady:'📁 Folder ready: downloads/{folder}', filesGrouped:'📄 Files grouped: {n}', zipReady:'🗜️ ZIP ready: {url}',
+        downloadZip:'Download ZIP', noFiles:'No files yet. Paste a URL above and download your first video.',
+        enterTopic:'Enter the topic to assign to the selected items:', noFiltered:'There are no selected items with a video ID.',
+        assignConfirm:'Assign topic "{topic}" to {n} selected item(s)?', assignedTopic:'🏷️ Topic assigned: {topic} · Files moved: {n}',
+        assignTopicError:'Could not assign the topic.', markedLang:'Select at least one language above.', selectAtLeastOne:'Select at least one item.',
+        processDownloadIdle:'⬇️ Process download', subtitlesGroup:'Subtitles', subtitleCount:'{n} subtitle(s)',
+        deleteVideoTitle:'Delete all files for this video', downloadSub:'Download {lang} — {size}', downloadSubtitle:'Download subtitle {lang}',
+        selectForBulk:'Select for bulk action', availableDownload:'Available — download ({meta})', emptyPlaceholder:'Empty placeholder',
+        downloadLabel:'Download {label}', deleteOneConfirm:'Delete all files for \"{label}\"?\n\nThis deletes the video, MP3, subtitles, and thumbnail if they exist. This cannot be undone.',
+        deleteManyConfirm:'Delete ALL files for {n} selected videos?\n\nThis deletes the video, MP3, subtitles, and thumbnail for each one. This cannot be undone.',
+        deletedCount:'🗑 Deleted: {n} file(s)', invalidIds:' · Invalid IDs: {ids}', processingDownload:'⏳ Processing download...',
+        videoLabel:'Video', placeholderLabel:'Placeholder', thumbLabel:'Thumbnail', loadingCards:'Loading cards...'
+      }
+    };
+
+    function t(key, vars={}){
+      let s = (I18N[uiLang] && I18N[uiLang][key]) || I18N.es[key] || key;
+      for(const [k,v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, v);
+      return s;
+    }
+
+    function applyLanguage(lang){
+      uiLang = lang === 'en' ? 'en' : 'es';
+      localStorage.setItem('uiLang', uiLang);
+      document.documentElement.lang = uiLang;
+      $('appVersion').textContent = APP_VERSION;
+      $('langLabel').textContent = uiLang.toUpperCase();
+      document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+      document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+      applyTheme(body.classList.contains('dark') ? 'dark' : 'light');
+    }
+
+    // ===== SSE / Progress =====
+    const progress = {
+      es: null, items: new Map(), total: 0, done: 0, errors: 0,
+    };
+
+    function uuid(){
+      if(crypto?.randomUUID) return crypto.randomUUID().replace(/-/g,'');
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+    }
+
+    function progressShow(title){
+      progress.items.clear();
+      progress.total = 0; progress.done = 0; progress.errors = 0;
+      $('progress').classList.remove('hidden');
+      $('progressTitle').textContent = title || t('processing');
+      $('progressCounts').textContent = '0 / 0';
+      $('progressBar').style.width = '0%';
+      $('progressBar').classList.remove('done','error');
+      $('progressItems').innerHTML = '';
+    }
+    function progressHide(){
+      $('progress').classList.add('hidden');
+      progressCloseSSE();
+    }
+    function progressCloseSSE(){
+      if(progress.es){ try { progress.es.close(); } catch(_){} progress.es = null; }
+    }
+    function progressUpdateBar(){
+      const pct = progress.total ? Math.round((progress.done / progress.total) * 100) : 0;
+      $('progressBar').style.width = pct + '%';
+      $('progressCounts').textContent = `${progress.done} / ${progress.total}` + (progress.errors ? ` · ${progress.errors} con error` : '');
+    }
+    function progressItemEl(key){
+      let el = progress.items.get(key);
+      if(el) return el;
+      el = document.createElement('div');
+      el.className = 'pitem running';
+      el.innerHTML = `
+        <span class="pstate">●</span>
+        <span class="ptext" title="${escapeHtml(key)}">${escapeHtml(shortKey(key))}</span>
+        <span class="pmini"><span></span></span>
+        <span class="ppct">0%</span>`;
+      $('progressItems').appendChild(el);
+      progress.items.set(key, el);
+      return el;
+    }
+    function shortKey(k){
+      return String(k).replace(/^https?:\/\/(www\.)?youtube\.com\/watch\?v=/, 'yt:').slice(0, 80);
+    }
+
+    function progressOnEvent(evt, data){
+      if(evt === 'start'){
+        progress.total = data.total || 0;
+        progressUpdateBar();
+      } else if(evt === 'phase'){
+        $('progressTitle').textContent = data.message ? ('⏳ ' + data.message) : t('processing');
+      } else if(evt === 'item_start'){
+        const el = progressItemEl(data.url);
+        el.className = 'pitem running';
+        el.querySelector('.pstate').textContent = '●';
+      } else if(evt === 'progress'){
+        const el = progressItemEl(data.url);
+        const pct = Math.max(0, Math.min(100, data.percent || 0));
+        el.querySelector('.pmini > span').style.width = pct + '%';
+        el.querySelector('.ppct').textContent = pct + '%';
+      } else if(evt === 'item_done'){
+        const el = progressItemEl(data.url);
+        el.classList.remove('running');
+        if(data.ok){
+          el.classList.add('ok');
+          el.querySelector('.pstate').textContent = '✓';
+          el.querySelector('.pmini > span').style.width = '100%';
+          el.querySelector('.ppct').textContent = 'OK';
+        } else {
+          el.classList.add('error');
+          el.querySelector('.pstate').textContent = '✕';
+          el.querySelector('.ppct').textContent = 'ERR';
+          if(data.error){
+            let err = el.querySelector('.perr');
+            if(!err){ err = document.createElement('span'); err.className = 'perr'; el.appendChild(err); }
+            err.textContent = data.error;
+            err.title = data.error;
+          }
+          progress.errors++;
+        }
+        progress.done++;
+        progressUpdateBar();
+      } else if(evt === 'complete'){
+        const ok = data.ok && progress.errors === 0;
+        $('progressBar').classList.add(ok ? 'done' : 'error');
+        $('progressTitle').textContent = ok ? t('completed') : t('completedErrors', {n: progress.errors || (data.errors||[]).length});
+        if(data.folder || data.archive_url){
+          const msg = [
+            data.folder ? t('folderReady', {folder:data.folder}) : '',
+            Number.isFinite(data.copied_count) ? t('filesGrouped', {n:data.copied_count}) : '',
+            data.archive_url ? t('zipReady', {url:data.archive_url}) : '',
+          ].filter(Boolean).join('\n');
+          $('status').innerHTML = escapeHtml(msg) + (data.archive_url ? `\n<a href="${data.archive_url}" download>${escapeHtml(t('downloadZip'))}</a>` : '');
+          if(data.archive_url){
+            const a = document.createElement('a');
+            a.href = data.archive_url;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          }
+        }
+        progressCloseSSE();
+        refreshAll();
+      }
+    }
+
+    function startJob(endpoint, payload, title){
+      const job_id = uuid();
+      progressShow(title);
+      progressCloseSSE();
+      const es = new EventSource(`/api/events?job_id=${job_id}`);
+      progress.es = es;
+      ['open','start','phase','item_start','progress','item_done','complete'].forEach(name => {
+        es.addEventListener(name, ev => {
+          try { progressOnEvent(name, JSON.parse(ev.data || '{}')); } catch(_){}
+        });
+      });
+      es.onerror = () => { /* let server end naturally */ };
+      return fetch(endpoint, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ ...payload, job_id })
+      }).then(r => r.json());
+    }
+
+    const LANGS = [
+      {code:'en', flag:'🇬🇧', name:'English', def:true},
+      {code:'es', flag:'🇪🇸', name:'Español', def:true},
+      {code:'de', flag:'🇩🇪', name:'Deutsch', def:true},
+      {code:'fr', flag:'🇫🇷', name:'Français'},
+      {code:'it', flag:'🇮🇹', name:'Italiano'},
+      {code:'pt', flag:'🇵🇹', name:'Português'},
+    ];
+    const LANG_MAP = Object.fromEntries(LANGS.map(l => [l.code, l]));
+
+    function flagFor(code){
+      if(!code) return '🌐';
+      const base = String(code).toLowerCase().split('-')[0];
+      return LANG_MAP[base]?.flag || '🌐';
+    }
+    function langName(code){
+      const base = String(code||'').toLowerCase().split('-')[0];
+      return LANG_MAP[base]?.name || code || '';
+    }
+
+    function applyTheme(theme){
+      body.classList.toggle('dark', theme === 'dark');
+      $('themeIcon').textContent = theme === 'dark' ? '☀️' : '🌙';
+      $('themeLabel').textContent = theme === 'dark' ? t('lightMode') : t('darkMode');
+      localStorage.setItem('theme', theme);
+    }
+
+    async function loadVersion(){
+      try{
+        const r = await fetch('/api/version', {cache:'no-store'});
+        const j = await r.json();
+        APP_VERSION = j.version || APP_VERSION;
+      }catch(_e){
+        APP_VERSION = 'unknown';
+      }
+      $('appVersion').textContent = APP_VERSION;
+    }
+
+    function buildLangChips(){
+      const grid = $('langGrid');
+      grid.innerHTML = LANGS.map(l => `
+        <label class="lang-chip${l.def ? ' active' : ''}" data-code="${l.code}">
+          <input type="checkbox" value="${l.code}" ${l.def ? 'checked' : ''}>
+          <span class="flag">${l.flag}</span>
+          <span>${l.name}</span>
+        </label>
+      `).join('');
+      grid.querySelectorAll('.lang-chip input').forEach(cb => {
+        cb.addEventListener('change', () => {
+          cb.closest('.lang-chip').classList.toggle('active', cb.checked);
+        });
+      });
+    }
+    function selectedLangs(){
+      return [...$('langGrid').querySelectorAll('input:checked')].map(i => i.value);
+    }
+
+    function extractVideoId(text){
+      const m = String(text || '').match(/\[([A-Za-z0-9_-]{11})\]/);
+      return m ? m[1] : null;
+    }
+    function humanSize(bytes){
+      if(bytes == null || bytes < 0) return '';
+      if(bytes === 0) return '—';
+      const u = ['B','KB','MB','GB','TB'];
+      let i = 0, v = bytes;
+      while(v >= 1024 && i < u.length-1){ v /= 1024; i++; }
+      return (v >= 10 || i === 0 ? Math.round(v) : v.toFixed(1)) + u[i];
+    }
+    function humanDuration(sec){
+      if(!sec || sec < 0) return '';
+      sec = Math.round(sec);
+      const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+      const pad = n => String(n).padStart(2,'0');
+      return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+    }
+
+    function filterCookiesFileContent(text){
+      return String(text || '').split(/\r?\n/).map(l => l.trim())
+        .filter(l => l && (l.startsWith('#') || l.split('\t').length >= 7)).join('\n');
+    }
+
+    function groupFiles(files){
+      const groups = new Map();
+      for(const f of files){
+        const id = f.video_id || extractVideoId(f.name) || extractVideoId(f.path) || `__file__:${f.path}`;
+        if(!groups.has(id)){
+          groups.set(id, {id, topic:f.topic || '', files:[], mtime:0, title:''});
+        }
+        const g = groups.get(id);
+        g.files.push(f);
+        g.mtime = Math.max(g.mtime, Number(f.mtime || 0));
+        if(!g.topic && f.topic) g.topic = f.topic;
+      }
+      for(const g of groups.values()){
+        const ranked = [...g.files].sort((a,b) => {
+          const rank = k => k === 'video' ? 0 : k === 'audio' ? 1 : k === 'subtitle' ? 2 : 3;
+          return rank(a.kind) - rank(b.kind);
+        });
+        g.title = ranked[0]?.title || ranked[0]?.name || g.id;
+      }
+      return [...groups.values()].sort((a,b) => b.mtime - a.mtime);
+    }
+
+    async function fetchMissing(videoId, action, lang=''){
+      const payload = {
+        video_id: videoId, action,
+        topic: $('topic').value.trim(),
+        langs: lang ? [lang] : selectedLangs()
+      };
+      const label = action === 'subtitles' ? `${t('subtitlesGroup')} ${(lang||'').toUpperCase()}` : action.toUpperCase();
+      return startJob('/api/fetch-missing', payload, `⬇️ ${label} — ${videoId}`);
+    }
+    window.fetchMissing = fetchMissing;
+
+    function groupContentFlags(g){
+      const videoFile = g.files.find(f => f.kind === 'video' && !f.is_placeholder);
+      const placeholderFile = g.files.find(f => f.kind === 'video' && f.is_placeholder);
+      const mp3File = g.files.find(f => f.kind === 'audio' && f.path.toLowerCase().endsWith('.mp3'));
+      const subtitleFiles = g.files.filter(f => f.kind === 'subtitle');
+      return {
+        video: !!videoFile,
+        placeholder: !!placeholderFile,
+        mp3: !!mp3File,
+        subtitle: subtitleFiles.length > 0,
+      };
+    }
+
+    function selectedContentFilters(){
+      return [...document.querySelectorAll('input[name="contentFilter"]:checked')].map(i => i.value);
+    }
+
+    function renderCard(g){
+      const videoId = g.id && !g.id.startsWith('__file__:') ? g.id : null;
+      const videoFile = g.files.find(f => f.kind === 'video' && !f.is_placeholder);
+      const placeholderFile = g.files.find(f => f.kind === 'video' && f.is_placeholder);
+      const mp3File = g.files.find(f => f.kind === 'audio' && f.path.toLowerCase().endsWith('.mp3'));
+      const subtitleFiles = g.files.filter(f => f.kind === 'subtitle');
+      const subsByLang = new Map();
+      for(const s of subtitleFiles){
+        const lang = s.lang || 'und';
+        if(!subsByLang.has(lang)) subsByLang.set(lang, s);
+      }
+
+      const types = [];
+      if(videoFile) types.push({i:'🎬', has:true, t:'Video'});
+      else if(placeholderFile) types.push({i:'🎬', has:false, t:'Video (placeholder)'});
+      if(mp3File) types.push({i:'🎵', has:true, t:'MP3'});
+      if(subtitleFiles.length) types.push({i:'💬', has:true, t:t('subtitleCount', {n:subtitleFiles.length})});
+      const typeBadges = types.length ? `<div class="type-badges">${types.map(t => `<span class="tbadge ${t.has?'has':''}" title="${t.t}">${t.i}</span>`).join('')}</div>` : '';
+
+      const deleteBtn = videoId
+        ? `<button class="vcard-delete" data-delvid="${videoId}" data-title="${escapeAttr(g.title)}" title="${escapeAttr(t('deleteVideoTitle'))}">🗑</button>`
+        : '';
+
+      let mediaHtml = '';
+      if(videoId){
+        const thumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        const mp4Url = videoFile ? videoFile.url : '';
+        const mp3Url = mp3File ? mp3File.url : '';
+        const duration = videoFile?.duration ? humanDuration(videoFile.duration) : '';
+        mediaHtml = `
+          <div class="vcard-media" data-yid="${videoId}" data-mp4="${mp4Url}" data-mp3="${mp3Url}">
+            <div class="vcard-cover" style="background-image:url('${thumb}')">
+              <button class="vcard-play" title="Reproducir">▶</button>
+            </div>
+            ${deleteBtn}
+            <a class="vcard-yt-link" href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener" title="Abrir en YouTube">▶ YT</a>
+            ${duration ? `<span class="vcard-duration">${duration}</span>` : ''}
+          </div>`;
+        if(mp3File && !videoFile){
+          mediaHtml += `<audio class="vcard-audio" controls preload="none" src="${mp3File.url}"></audio>`;
+        }
+      } else if (videoFile){
+        mediaHtml = `<div class="vcard-media"><video controls src="${videoFile.url}"></video></div>`;
+      } else if (mp3File){
+        mediaHtml = `<div class="vcard-media" style="aspect-ratio:auto;padding:30px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center"><audio controls src="${mp3File.url}" style="width:100%"></audio></div>`;
+      }
+
+      const subActs = subtitleFiles.length ? `
+        <div class="act-row">
+          <div class="act-group-label">${escapeHtml(t('subtitlesGroup'))}</div>
+          <div class="sublangs">
+            ${[...subsByLang.entries()].map(([lang, f]) => `
+              <a class="sublang have" href="${f.url}" download title="${escapeAttr(t('downloadSub', {lang:langName(lang), size:humanSize(f.size)}))}${f.chunks ? ` · ${f.chunks} chunks` : ''}">
+                <span class="flag">${flagFor(lang)}</span>
+                <span>${lang.toUpperCase()}</span>
+                ${f.chunks ? `<span class="lmeta">${f.chunks}</span>` : ''}
+              </a>
+            `).join('')}
+            ${videoId ? selectedLangs().filter(l => !subsByLang.has(l)).map(l => `
+              <button class="sublang" onclick="fetchMissing('${videoId}','subtitles','${l}')" title="${escapeAttr(t('downloadSubtitle', {lang:langName(l)}))}">
+                <span class="flag">${flagFor(l)}</span>
+                <span>${l.toUpperCase()}</span>
+              </button>
+            `).join('') : ''}
+          </div>
+        </div>
+      ` : (videoId ? `
+        <div class="act-row">
+          <div class="act-group-label">${escapeHtml(t('subtitlesGroup'))}</div>
+          <div class="sublangs">
+            ${selectedLangs().map(l => `
+              <button class="sublang" onclick="fetchMissing('${videoId}','subtitles','${l}')" title="${escapeAttr(t('downloadSubtitle', {lang:langName(l)}))}">
+                <span class="flag">${flagFor(l)}</span>
+                <span>${l.toUpperCase()}</span>
+              </button>`).join('')}
+          </div>
+        </div>` : '');
+
+      const mainActs = videoId || videoFile || mp3File || placeholderFile ? `
+        <div class="actions">
+          ${renderAct({
+            icon:'🎬', label:t('videoLabel'),
+            file: videoFile,
+            meta: videoFile ? humanSize(videoFile.size) : '',
+            sub: videoFile?.duration ? humanDuration(videoFile.duration) : '',
+            onAction: videoId ? `fetchMissing('${videoId}','video')` : null,
+          })}
+          ${renderAct({
+            icon:'🎵', label:'MP3',
+            file: mp3File,
+            meta: mp3File ? humanSize(mp3File.size) : '',
+            onAction: videoId ? `fetchMissing('${videoId}','mp3')` : null,
+          })}
+          ${renderAct({
+            icon:'📦', label:t('placeholderLabel'),
+            file: placeholderFile,
+            placeholder:true,
+            meta: placeholderFile ? '0B' : '',
+            onAction: null,
+          })}
+          ${renderAct({
+            icon:'🖼️', label:t('thumbLabel'),
+            file: g.files.find(f => f.kind === 'image'),
+            meta: (() => { const t = g.files.find(f => f.kind === 'image'); return t ? humanSize(t.size) : ''; })(),
+            onAction: videoId ? `fetchMissing('${videoId}','thumbnail')` : null,
+          })}
+        </div>` : '';
+
+      const topicChip = g.topic ? `<span class="chip topic">${g.topic}</span>` : '';
+      const idChip = videoId ? `<span class="chip">${videoId}</span>` : '';
+
+      const selectable = !!videoId;
+      const selected = selectable && selection.has(videoId);
+      const selectBtn = selectable
+        ? `<button class="vcard-select ${selected?'on':''}" data-vid="${videoId}" title="${escapeAttr(t('selectForBulk'))}">${selected?'✓':''}</button>`
+        : '';
+
+      return `<article class="vcard ${selected?'selected':''}" data-vid="${videoId||''}">
+        ${selectBtn}
+        ${mediaHtml}
+        <div class="vcard-body">
+          <h3 class="vcard-title">${escapeHtml(g.title)}</h3>
+          <div class="vcard-sub">
+            ${typeBadges}
+            ${idChip}
+            ${topicChip}
+          </div>
+          ${mainActs}
+          ${subActs}
+        </div>
+      </article>`;
+    }
+
+    function renderAct({icon, label, file, meta, sub, onAction, placeholder}){
+      const have = !!file && !placeholder;
+      const isPlaceholder = !!file && placeholder;
+      const cls = have ? 'have' : isPlaceholder ? 'placeholder' : '';
+      const click = have && file?.url
+        ? `onclick="window.open('${file.url}','_blank')"`
+        : (onAction ? `onclick="${onAction}"` : '');
+      const metaFull = `${meta||''}${sub?' · '+sub:''}`;
+      const title = have ? t('availableDownload', {meta:metaFull}) : isPlaceholder ? t('emptyPlaceholder') : t('downloadLabel', {label});
+      const metaTxt = meta || '';
+      return `<button class="act ${cls}" ${click} title="${title}">
+        ${metaTxt ? `<span class="act-meta">${metaTxt}</span>` : ''}
+        <span class="act-icon">${icon}</span>
+        <span class="act-label">${label}</span>
+      </button>`;
+    }
+
+    function escapeHtml(s){
+      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function escapeAttr(s){ return escapeHtml(s); }
+
+    async function deleteVideos(ids, label){
+      if(!ids.length){ $('status').textContent = t('selectAtLeastOne'); return; }
+      const msg = ids.length === 1
+        ? t('deleteOneConfirm', {label: label || ids[0]})
+        : t('deleteManyConfirm', {n: ids.length});
+      if(!confirm(msg)) return;
+      const r = await fetch('/api/delete', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ video_ids: ids })
+      });
+      const j = await r.json();
+      $('status').textContent = t('deletedCount', {n:j.count || 0}) + (j.invalid_ids?.length ? t('invalidIds', {ids:j.invalid_ids.join(', ')}) : '');
+      for(const id of ids) selection.delete(id);
+      await refreshAll();
+    }
+
+    function activateSelectBoxes(){
+      document.querySelectorAll('.vcard-select').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const vid = btn.dataset.vid;
+          if(!vid) return;
+          if(selection.has(vid)) selection.delete(vid); else selection.add(vid);
+          renderBulkBar();
+          const card = btn.closest('.vcard');
+          const on = selection.has(vid);
+          card.classList.toggle('selected', on);
+          btn.classList.toggle('on', on);
+          btn.textContent = on ? '✓' : '';
+        };
+      });
+      document.querySelectorAll('.vcard-delete').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const vid = btn.dataset.delvid;
+          const title = btn.dataset.title || vid;
+          if(vid) deleteVideos([vid], title);
+        };
+      });
+    }
+
+    function visibleSelectable(){
+      return lastGroups.filter(g => g.id && !g.id.startsWith('__file__:')).map(g => g.id);
+    }
+
+    function renderBulkBar(){
+      const visible = visibleSelectable();
+      for(const id of [...selection]) if(!visible.includes(id)) selection.delete(id);
+      const n = selection.size;
+      $('bulkCount').textContent = n;
+      $('bulkbar').classList.toggle('hidden', visible.length === 0);
+      ['bulkVideo','bulkMp3','bulkSubs','bulkPlaceholders','bulkDelete'].forEach(id => $(id).disabled = visible.length === 0);
+    }
+
+    async function bulkRun(action, lang=''){
+      const ids = [...selection];
+      if(!ids.length){ $('status').textContent = t('selectAtLeastOne'); return; }
+      const total = ids.length;
+      const btns = ['bulkVideo','bulkMp3','bulkSubs','bulkPlaceholders','bulkSelectAll','bulkClear'].map(id => $(id));
+      btns.forEach(b => b.disabled = true);
+      const label = action === 'subtitles' ? `Subs ${(lang||'').toUpperCase()}` : action.toUpperCase();
+      const compress = $('bulkCompress').checked && action !== 'video';
+      progressShow(`${compress ? '🗜️' : '⬇️'} Agrupando ${label} — 0 / ${total}`);
+      try {
+        const job_id = uuid();
+        progressCloseSSE();
+        const es = new EventSource(`/api/events?job_id=${job_id}`);
+        progress.es = es;
+        await new Promise((resolve) => {
+          ['open','start','phase','item_start','progress','item_done','complete'].forEach(name => {
+            es.addEventListener(name, ev => {
+              try {
+                progressOnEvent(name, JSON.parse(ev.data || '{}'));
+                if(name === 'complete') resolve();
+              } catch(_){
+                if(name === 'complete') resolve();
+              }
+            });
+          });
+          es.onerror = () => { /* let server end naturally */ };
+          fetch('/api/collect-content', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              job_id, video_ids: ids, action,
+              topic: $('topic').value.trim(),
+              langs: lang ? [lang] : selectedLangs(),
+              compress,
+            })
+          }).catch(() => { progressCloseSSE(); resolve(); });
+        });
+        const ok = progress.errors === 0;
+        $('progressBar').classList.add(ok ? 'done' : 'error');
+        await refreshAll();
+      } finally {
+        btns.forEach(b => b.disabled = false);
+        renderBulkBar();
+      }
+    }
+
+    async function bulkSubsAllLangs(){
+      if(!selection.size){ $('status').textContent = t('selectAtLeastOne'); return; }
+      if(!selectedLangs().length){ $('status').textContent = t('markedLang'); return; }
+      await bulkRun('subtitles');
+    }
+
+    function activateMediaPlayers(){
+      document.querySelectorAll('.vcard-media[data-yid]').forEach(wrap => {
+        const cover = wrap.querySelector('.vcard-cover');
+        if(!cover) return;
+        const id = wrap.dataset.yid;
+        const mp4 = wrap.dataset.mp4 || '';
+        const play = () => {
+          if(mp4){
+            wrap.innerHTML = `<video controls autoplay src="${mp4}"></video>`;
+          } else {
+            wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+          }
+        };
+        cover.onclick = play;
+      });
+    }
+
+    let loadFilesSeq = 0;
+    const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+    function showCardsLoading(){
+      $('files').innerHTML = `<div class="cards-loading"><div class="spinner"></div><div>${escapeHtml(t('loadingCards'))}</div></div>`;
+    }
+
+    async function loadFiles(){
+      const seq = ++loadFilesSeq;
+      showCardsLoading();
+      await nextFrame();
+      try {
+        const r = await fetch('/api/files');
+        const j = await r.json();
+        if(seq !== loadFilesSeq) return;
+        const search = ($('search').value || '').trim().toLowerCase();
+        let topicFilter = ($('topicFilter').value || '').trim().toLowerCase();
+        const contentFilters = selectedContentFilters();
+        let groups = groupFiles(j.files || []);
+        const filtersActive = (searchDirty && Boolean(search)) || (topicDirty && Boolean(topicFilter)) || contentFilters.length > 0;
+        if (filtersActive){
+          groups = groups.filter(g => {
+            const blob = `${g.id} ${g.topic} ${g.title} ${g.files.map(x => `${x.name} ${x.path}`).join(' ')}`.toLowerCase();
+            const bySearch = !search || blob.includes(search);
+            const byTopic = !topicFilter || (g.topic || '').toLowerCase() === topicFilter;
+            const flags = groupContentFlags(g);
+            const byContent = !contentFilters.length || contentFilters.some(type => flags[type]);
+            return bySearch && byTopic && byContent;
+          });
+        }
+        if(seq !== loadFilesSeq) return;
+        $('filesCount').textContent = groups.length;
+        lastGroups = groups;
+        $('files').innerHTML = groups.length
+          ? groups.map(renderCard).join('')
+          : `<div class="empty">${escapeHtml(t('noFiles'))}</div>`;
+        activateMediaPlayers();
+        activateSelectBoxes();
+        renderBulkBar();
+      } catch(e) {
+        if(seq === loadFilesSeq){
+          $('files').innerHTML = `<div class="empty">${escapeHtml(String(e?.message || e))}</div>`;
+        }
+      }
+    }
+
+    async function loadTopics(){
+      const r = await fetch('/api/topics');
+      const j = await r.json();
+      const current = $('topicFilter').value || '';
+      $('topicFilter').innerHTML = `<option value="">${escapeHtml(t('allTopics'))}</option>` +
+        (j.topics || []).map(t => `<option value="${t}">${t}</option>`).join('');
+      const exists = [...$('topicFilter').options].some(o => o.value === current);
+      $('topicFilter').value = exists ? current : '';
+    }
+
+    async function assignTopicToFiltered(){
+      const ids = [...selection].filter(id => visibleSelectable().includes(id));
+      if(!ids.length){ $('status').textContent = t('noFiltered'); return; }
+      let topic = ($('topic').value || '').trim();
+      if(!topic){
+        topic = prompt(t('enterTopic'), '');
+        if(topic == null) return;
+        topic = topic.trim();
+        $('topic').value = topic;
+      }
+      if(!topic) return;
+      if(!confirm(t('assignConfirm', {topic, n:ids.length}))) return;
+      const r = await fetch('/api/assign-topic', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ video_ids: ids, topic })
+      });
+      const j = await r.json();
+      if(!r.ok || !j.ok){
+        $('status').textContent = j.error || t('assignTopicError');
+        return;
+      }
+      $('status').textContent = t('assignedTopic', {topic:j.topic || topic, n:j.count || 0});
+      selection.clear();
+      await refreshAll();
+    }
+
+    async function refreshAll(){
+      await loadTopics();
+      await loadFiles();
+    }
+
+    $('run').onclick = async () => {
+      const btn = $('run');
+      btn.disabled = true;
+      btn.textContent = t('processing');
+      try {
+        const payload = {
+          urls: $('urls').value, topic: $('topic').value, langs: selectedLangs(),
+          download_video: $('download_video').checked,
+          description: $('description').checked,
+          mp3: $('mp3').checked,
+          only_mp3: $('only_mp3').checked,
+          split_mp3: $('split_mp3').checked,
+          split_video: $('split_video').checked,
+          subtitle_only_placeholder: $('subtitle_only_placeholder').checked,
+          cookies_text: $('cookies_text').value,
+        };
+        await startJob('/api/download', payload, t('processingDownload'));
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = t('processDownloadIdle');
+      }
+    };
+    $('progressClose').onclick = () => progressHide();
+
+    $('themeToggle').onclick = () => applyTheme(body.classList.contains('dark') ? 'light' : 'dark');
+    $('langToggle').onclick = async () => { applyLanguage(uiLang === 'es' ? 'en' : 'es'); await refreshAll(); };
+    $('cookies_file').onchange = async (e) => {
+      const f = e.target.files?.[0]; if(!f) return;
+      const raw = await f.text();
+      $('cookies_text').value = filterCookiesFileContent(raw);
+    };
+    $('search').oninput = () => { searchDirty = true; loadFiles(); };
+    $('topicFilter').onchange = () => { topicDirty = true; loadFiles(); };
+    document.querySelectorAll('input[name="contentFilter"]').forEach(input => {
+      input.onchange = () => loadFiles();
+    });
+
+    $('bulkSelectAll').onclick = () => {
+      for(const id of visibleSelectable()) selection.add(id);
+      loadFiles();
+    };
+    $('bulkClear').onclick = () => { selection.clear(); loadFiles(); };
+    $('bulkVideo').onclick = () => bulkRun('video');
+    $('bulkMp3').onclick = () => bulkRun('mp3');
+    $('bulkSubs').onclick = () => bulkSubsAllLangs();
+    $('bulkPlaceholders').onclick = () => bulkRun('placeholder');
+    $('bulkDelete').onclick = () => deleteVideos([...selection]);
+    $('assignFilteredTopic').onclick = () => assignTopicToFiltered();
+
+    buildLangChips();
+    applyLanguage(uiLang);
+    loadVersion();
+    applyTheme(localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    refreshAll();
+  </script>
+</body>
+</html>

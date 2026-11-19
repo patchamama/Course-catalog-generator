@@ -46,3 +46,11 @@ odd/
 .claude/
 *.tgz
 *.manifest.json
+
+# Companion tools: local environments, downloads and node modules
+_youtube_downloader/venv/
+_youtube_downloader/downloads/
+_youtube_downloader/cookies*.txt
+**/node_modules/
+*.bak
+*.formatted.md

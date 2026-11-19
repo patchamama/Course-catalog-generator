@@ -1,0 +1,16 @@
+{
+  "name": "mdfromhtml",
+  "version": "1.0.0",
+  "description": "Convert Articulate Rise HTML lessons to Markdown books",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "bash start_mdfromhtml.sh",
+    "html-to-md": "node html-to-md.mjs",
+    "build-collection": "node build-collection.mjs",
+    "merge-book": "node merge-book.mjs"
+  }
+}

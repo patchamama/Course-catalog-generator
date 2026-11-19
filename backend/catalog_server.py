@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 import logging
 import argparse
 import mimetypes
+import shutil
 import subprocess
 from pathlib import Path
 from functools import lru_cache
@@ -3627,6 +3628,7 @@ def tools_generate_catalog():
 @app.route('/api/tools/youtube-download', methods=['POST'])
 def tools_youtube_download():
     """Download YouTube subtitles/video."""
+    _loopback_only()                      # starts a downloader that writes files → this machine only
     data = request.get_json(force=True) or {}
     urls = data.get('urls', [])
     download_video = data.get('video', False)
@@ -3634,6 +3636,11 @@ def tools_youtube_download():
 
     if not urls:
         return jsonify({"error": "urls list is required"}), 400
+    urls = [str(u).strip() for u in urls if str(u).strip()]
+    if not urls or any(not re.match(r'^https?://', u, re.I) for u in urls):
+        return jsonify({"error": "Every entry must be a full http(s):// URL."}), 400
+    if output_dir.startswith('-'):
+        return jsonify({"error": "The output directory must be a path."}), 400
 
     script_dir = Path(__file__).parent.parent / '_youtube_downloader'
     cmd = [sys.executable, str(script_dir / 'downloader.py')]
@@ -3667,13 +3674,18 @@ def tools_ollama_pull():
 @app.route('/api/tools/pdf-collector', methods=['POST'])
 def tools_pdf_collector():
     """Run pdf_collector on a source folder."""
+    _loopback_only()                      # copies / merges files → this machine only
     data = request.get_json(force=True) or {}
     source = data.get('source', '').strip()
     output = data.get('output', '').strip()
-    join_pdfs = data.get('join_pdfs', False)
+    join_pdfs = data.get('join_pdfs', data.get('join', False))     # the UI sends "join"
 
     if not source:
         return jsonify({"error": "source folder is required"}), 400
+    if source.startswith('-') or output.startswith('-'):
+        return jsonify({"error": "Folders must be paths (they cannot start with \"-\")."}), 400
+    if not Path(source).expanduser().is_dir():
+        return jsonify({"error": f"Source folder not found: {source}"}), 400
 
     script_dir = Path(__file__).parent.parent / '_pdf_collector'
     cmd = [sys.executable, str(script_dir / 'collect.py'), source]
@@ -3690,9 +3702,10 @@ def tools_pdf_collector():
 @app.route('/api/tools/run-script', methods=['POST'])
 def tools_run_script():
     """Run a markdown tool script (mdsplit, mdtranslator, mdImageDownloader, mdformater, mdfromhtml)."""
+    _loopback_only()                      # runs scripts that read / write files → this machine only
     data = request.get_json(force=True) or {}
     tool = data.get('tool', '').strip()
-    args_list = data.get('args', [])
+    args_list = data.get('args')
 
     # Map tool names to script paths
     project_root = Path(__file__).parent.parent
@@ -3711,11 +3724,76 @@ def tools_run_script():
 
     info = tool_map[tool]
     script_dir = project_root / info['dir']
+    if not (script_dir / info['cmd'][1]).is_file():
+        return jsonify({"error": f"{info['cmd'][1]} not found in {info['dir']}/ — is the tool folder present?"}), 404
+    if info['cmd'][0] == 'node' and not shutil.which('node'):
+        return jsonify({"error": "Node.js 18+ is required for this tool (https://nodejs.org). Re-run start.sh / start.bat to install it."}), 400
+    if args_list is None:                  # the UI sends named options; translate them into CLI arguments
+        try:
+            args_list = _tool_cli_args(tool, data)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
     cmd = info['cmd'] + [str(a) for a in args_list]
 
     task_id = f"{tool}-{int(time.time())}"
     _run_tool_bg(task_id, cmd, cwd=str(script_dir))
     return jsonify({"task_id": task_id, "status": "started"})
+
+
+def _tool_cli_args(tool: str, o: dict) -> list:
+    """Turn the options the Tools UI sends (file, max_level, keep_html, …) into the command-line
+    arguments of each script. Raises ValueError with a user-facing message for bad input.
+    Before this existed the endpoint only read an `args` list, so every UI button ran its script with
+    no arguments at all."""
+    def s(key):
+        return str(o.get(key) or '').strip()
+
+    def opt(key, flag):
+        return [flag, s(key)] if s(key) else []
+
+    def on(key, flag):
+        return [flag] if o.get(key) else []
+
+    def need(key, label, must_exist=True):
+        v = s(key)
+        if not v:
+            raise ValueError(f'{label} is required.')
+        if v.startswith('-'):
+            raise ValueError(f'{label} must be a path (it cannot start with "-").')
+        if must_exist and not Path(v).expanduser().exists():
+            raise ValueError(f'{label} not found: {v}')
+        return v
+
+    for key in ('output', 'out', 'output_dir', 'images_dest'):      # values that become arguments must not look like flags
+        if s(key).startswith('-'):
+            raise ValueError(f'"{key}" must be a path (it cannot start with "-").')
+    if tool == 'mdsplit':
+        lvl = s('max_level')
+        if lvl and not (lvl.isdigit() and 1 <= int(lvl) <= 6):
+            raise ValueError('Max heading level must be a number from 1 to 6.')
+        return [need('file', 'Input file')] + opt('max_level', '--max-level') + opt('output', '--output') \
+               + on('table_of_contents', '--toc') + on('force', '--force')
+    if tool == 'mdImageDownloader':
+        return [need('file', 'Document path')] + opt('out', '--out') + on('keep_html', '--keep-html') + on('dry_run', '--dry-run')
+    if tool == 'mdformater':
+        return [need('file', 'Document path')] + on('auto', '--auto') + on('images_only', '--images-only')
+    if tool == 'mdtranslator':
+        return [need('file', 'Document path')]
+    if tool == 'mdfromhtml':
+        return [need('input', 'Input HTML file')] + ([s('output')] if s('output') else [])
+    if tool == 'mdfromhtml-collection':
+        return [need('input_dir', 'Input directory')] + ([s('output_dir')] if s('output_dir') else [])
+    if tool == 'mdfromhtml-merge':
+        depth = s('toc_depth')
+        if depth and not (depth.isdigit() and 0 <= int(depth) <= 6):
+            raise ValueError('TOC depth must be a number from 0 to 6.')
+        # merge-book excludes the "view original" reference lines by default; the box "Skip original
+        # reference links" unticked means "keep them"
+        return [need('input_dir', 'Input directory')] + opt('output', '--output') + opt('toc_depth', '--toc-depth') \
+               + ([] if o.get('no_refs') else ['--include-original-refs']) \
+               + on('no_convert_emphasis', '--no-convert-emphasis') + on('no_format_tables', '--no-format-tables') \
+               + opt('images_dest', '--images-dest')
+    return []
 
 
 @app.route('/api/tools/index-directory', methods=['POST'])

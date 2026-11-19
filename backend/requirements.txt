@@ -27,3 +27,16 @@ sentencepiece>=0.1.99          # Required for LaBSE tokenizer
 
 # ── FAISS fallback (optional — semantic search without Elasticsearch) ─────────
 faiss-cpu>=1.7.4               # Vector similarity search fallback when ES is unavailable
+
+# ── Companion tools (Tools menu) ─────────────────────────────────────────────
+yt-dlp>=2024.1.0               # _youtube_downloader (also needs ffmpeg on the system to merge video + audio)
+
+# ── Used when present; listed so the optional features just work ──────────────
+numpy>=1.24                    # embeddings (also pulled in by sentence-transformers)
+huggingface-hub>=0.20          # model cache / offline detection
+langdetect>=1.0.9              # language detection for the canonical-language / translation workers
+psutil>=5.9                    # hardware-aware Ollama model suggestions
+
+# Optional OCR engines (Tools > OCR extract) — install the one you want:
+#   pip install pytesseract pdf2image Pillow      (+ the Tesseract program: brew install tesseract / apt install tesseract-ocr)
+#   pip install easyocr     |     pip install paddleocr paddlepaddle
