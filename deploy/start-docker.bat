@@ -261,8 +261,8 @@ SET "WAITED=0"
 :ES_READY
 echo.
 echo   OK  Elasticsearch ready
-echo   OK  Backend API: http://localhost:5000
-IF /I "!WITH_KIBANA!"=="true" echo   OK  Kibana: http://localhost:5601
+echo   OK  Backend API: http://127.0.0.1:5000
+IF /I "!WITH_KIBANA!"=="true" echo   OK  Kibana: http://127.0.0.1:5601
 
 :: =============================================================================
 :: STEP 5 — Elasticsearch indexing
@@ -316,10 +316,10 @@ echo.
 echo   ====================================================
 echo    Services running:
 echo.
-echo    Backend API   --^>  http://localhost:5000
+echo    Backend API   --^>  http://127.0.0.1:5000
 echo    Elasticsearch --^>  http://127.0.0.1:9200
 IF /I "!WITH_KIBANA!"=="true" (
-    echo    Kibana        --^>  http://localhost:5601
+    echo    Kibana        --^>  http://127.0.0.1:5601
 )
 echo.
 echo    Catalog HTML  --^>  %SCRIPT_DIR%\course_catalog.html
@@ -329,19 +329,19 @@ echo.
 echo   Test the backend API (run in another terminal window):
 echo.
 echo     REM Health check (shows ES connection status)
-echo     curl http://localhost:5000/api/health
+echo     curl http://127.0.0.1:5000/api/health
 echo.
 echo     REM Standard full-text search
-echo     curl "http://localhost:5000/api/search?q=Installation"
+echo     curl "http://127.0.0.1:5000/api/search?q=Installation"
 echo.
 echo     REM ES BM25 search with German language analyzer
-echo     curl "http://localhost:5000/api/es-search?q=Benutzer&lang=de"
+echo     curl "http://127.0.0.1:5000/api/es-search?q=Benutzer&lang=de"
 echo.
 echo     REM ES semantic search (kNN vector similarity)
-echo     curl "http://localhost:5000/api/es-search?q=user+administration&semantic=1"
+echo     curl "http://127.0.0.1:5000/api/es-search?q=user+administration&semantic=1"
 echo.
 echo     REM ES hybrid search (BM25 + semantic, Spanish)
-echo     curl "http://localhost:5000/api/es-search?q=abreviatura&lang=es&semantic=1"
+echo     curl "http://127.0.0.1:5000/api/es-search?q=abreviatura&lang=es&semantic=1"
 echo.
 echo     REM Count indexed documents in Elasticsearch
 echo     curl "http://127.0.0.1:9200/course_catalog/_count?pretty"

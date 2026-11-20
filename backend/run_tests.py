@@ -26,7 +26,7 @@ from datetime import datetime
 from typing import Optional
 
 # ── Config ───────────────────────────────────────────────────────────────────
-DEFAULT_API = "http://localhost:5000"
+DEFAULT_API = "http://127.0.0.1:5000"
 DEFAULT_OUTPUT = "docs/test_results.md"
 
 # Questions for RAG test (9b)

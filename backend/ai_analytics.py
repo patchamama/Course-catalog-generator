@@ -46,11 +46,11 @@ try:
     import env as _env
     _ES_URL_DEFAULT     = getattr(_env, 'ES_URL',         os.environ.get('ES_URL',         'http://127.0.0.1:9200'))
     _ES_INDEX_DEFAULT   = getattr(_env, 'ES_INDEX',       os.environ.get('ES_INDEX',       'course_catalog'))
-    _OLLAMA_URL_DEFAULT = getattr(_env, 'OLLAMA_URL',     os.environ.get('OLLAMA_URL',     'http://localhost:11434'))
+    _OLLAMA_URL_DEFAULT = getattr(_env, 'OLLAMA_URL',     os.environ.get('OLLAMA_URL',     'http://127.0.0.1:11434'))
 except ImportError:
     _ES_URL_DEFAULT     = os.environ.get('ES_URL',         'http://127.0.0.1:9200')
     _ES_INDEX_DEFAULT   = os.environ.get('ES_INDEX',       'course_catalog')
-    _OLLAMA_URL_DEFAULT = os.environ.get('OLLAMA_URL',     'http://localhost:11434')
+    _OLLAMA_URL_DEFAULT = os.environ.get('OLLAMA_URL',     'http://127.0.0.1:11434')
 
 # Default summarization model (fallback if Ollama does not have the preferred one)
 _DEFAULT_SUMMARIZE_MODEL = 'qwen2.5:3b'

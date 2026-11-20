@@ -235,8 +235,8 @@ while true; do
 done
 echo ""
 
-ok "Backend API available at: http://localhost:5000"
-$WITH_KIBANA && ok "Kibana available at: http://localhost:5601" || true
+ok "Backend API available at: http://127.0.0.1:5000"
+$WITH_KIBANA && ok "Kibana available at: http://127.0.0.1:5601" || true
 
 # =============================================================================
 # STEP 5 — Elasticsearch indexing
@@ -287,9 +287,9 @@ sep
 echo ""
 echo -e "  ${BOLD}Services running:${RESET}"
 echo ""
-echo -e "  Backend API   →  ${CYAN}http://localhost:5000${RESET}"
+echo -e "  Backend API   →  ${CYAN}http://127.0.0.1:5000${RESET}"
 echo -e "  Elasticsearch →  ${CYAN}http://127.0.0.1:9200${RESET}"
-$WITH_KIBANA && echo -e "  Kibana        →  ${CYAN}http://localhost:5601${RESET}" || true
+$WITH_KIBANA && echo -e "  Kibana        →  ${CYAN}http://127.0.0.1:5601${RESET}" || true
 echo ""
 echo -e "  ${BOLD}Catalog HTML  →${RESET}  $SCRIPT_DIR/course_catalog.html"
 echo -e "  ${DIM}(open this file in your browser)${RESET}"
@@ -299,22 +299,22 @@ echo ""
 echo -e "  ${BOLD}Test the backend API:${RESET}"
 echo ""
 echo -e "  ${CYAN}# Health check (shows ES status)${RESET}"
-echo "  curl http://localhost:5000/api/health"
+echo "  curl http://127.0.0.1:5000/api/health"
 echo ""
 echo -e "  ${CYAN}# Standard full-text search${RESET}"
-echo "  curl 'http://localhost:5000/api/search?q=Installation'"
+echo "  curl 'http://127.0.0.1:5000/api/search?q=Installation'"
 echo ""
 echo -e "  ${CYAN}# ES full-text search (BM25, language-boosted)${RESET}"
-echo "  curl 'http://localhost:5000/api/es-search?q=Installation&lang=de'"
+echo "  curl 'http://127.0.0.1:5000/api/es-search?q=Installation&lang=de'"
 echo ""
 echo -e "  ${CYAN}# ES semantic search (kNN vector similarity)${RESET}"
-echo "  curl 'http://localhost:5000/api/es-search?q=user+administration&semantic=1'"
+echo "  curl 'http://127.0.0.1:5000/api/es-search?q=user+administration&semantic=1'"
 echo ""
 echo -e "  ${CYAN}# ES hybrid search (BM25 + semantic, Spanish)${RESET}"
-echo "  curl 'http://localhost:5000/api/es-search?q=abreviatura&lang=es&semantic=1'"
+echo "  curl 'http://127.0.0.1:5000/api/es-search?q=abreviatura&lang=es&semantic=1'"
 echo ""
 echo -e "  ${CYAN}# List all files for a search term${RESET}"
-echo "  curl 'http://localhost:5000/api/es-search?q=workflow&limit=20'"
+echo "  curl 'http://127.0.0.1:5000/api/es-search?q=workflow&limit=20'"
 echo ""
 echo -e "  ${CYAN}# Elasticsearch cluster info${RESET}"
 echo "  curl 'http://127.0.0.1:9200/_cluster/health?pretty'"
@@ -332,7 +332,7 @@ echo "  $COMPOSE down                  # stop all services"
 echo "  $COMPOSE down -v               # stop + delete ES data volume"
 echo ""
 if $WITH_KIBANA; then
-  echo -e "  ${CYAN}Kibana:${RESET} open http://localhost:5601 in your browser"
+  echo -e "  ${CYAN}Kibana:${RESET} open http://127.0.0.1:5601 in your browser"
   echo "        → Stack Management → Index Management → course_catalog"
   echo ""
 fi

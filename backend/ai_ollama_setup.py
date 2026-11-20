@@ -23,7 +23,7 @@ import urllib.request
 import urllib.error
 from typing import Optional
 
-OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
+OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434')
 
 # ── Model catalogue ────────────────────────────────────────────────────────────
 # Each entry: (ollama_tag, size_gb, min_vram_gb, min_ram_gb, description)

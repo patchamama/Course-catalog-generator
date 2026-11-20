@@ -1653,7 +1653,7 @@ def generate_html(courses, output_dir, force_youtube=False):
 
 <script>
 // ─── Backend Search ───────────────────────────────────────
-const BACKEND_URL = 'http://localhost:5000';
+const BACKEND_URL = 'http://127.0.0.1:5000';
 let backendSearchTimer = null;
 let _socket = null;
 let _streamingActive = false;

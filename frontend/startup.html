@@ -436,7 +436,7 @@ body {
       </div>
       <div class="cfg-field">
         <label>Ollama URL</label>
-        <input type="text" id="cfg-ollama" value="http://localhost:11434" placeholder="http://localhost:11434">
+        <input type="text" id="cfg-ollama" value="http://127.0.0.1:11434" placeholder="http://127.0.0.1:11434">
       </div>
     </div>
     <div class="config-actions">
@@ -723,9 +723,9 @@ const INFO = {
     ],
     statusFn: () => {
       const s = svcState['ollama'] || 'pending';
-      if (s === 'ok')      return '✓ Running at http://localhost:11434';
+      if (s === 'ok')      return '✓ Running at http://127.0.0.1:11434';
       if (s === 'warning') return '⚠ Not running — AI Chat disabled (app still works)';
-      if (s === 'checking') return '◌ Probing http://localhost:11434…';
+      if (s === 'checking') return '◌ Probing http://127.0.0.1:11434…';
       return '○ Not yet checked';
     }
   }

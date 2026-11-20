@@ -303,7 +303,7 @@ def main() -> None:
     ollama_running = False
     ollama_models: list[str] = []
     try:
-        req = urllib.request.urlopen('http://localhost:11434/api/tags', timeout=2)
+        req = urllib.request.urlopen('http://127.0.0.1:11434/api/tags', timeout=2)
         data = json.loads(req.read())
         ollama_models = [m['name'] for m in data.get('models', [])]
         ollama_running = True

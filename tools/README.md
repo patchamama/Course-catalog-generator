@@ -343,7 +343,7 @@ jobs:
         browser = p.chromium.launch()
         page = browser.new_page()
         page.on("console", lambda msg: collect_console(msg))
-        page.goto("http://localhost:5000")
+        page.goto("http://127.0.0.1:5000")
         for btn in page.query_selector_all("button"):
             btn.click(); page.wait_for_timeout(200)
     ```

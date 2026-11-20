@@ -59,13 +59,13 @@ try:
     import env as _env
     _ES_URL_DEFAULT            = getattr(_env, 'ES_URL',             os.environ.get('ES_URL',             'http://127.0.0.1:9200'))
     _ES_INDEX_DEFAULT          = getattr(_env, 'ES_INDEX',           os.environ.get('ES_INDEX',           'course_catalog'))
-    _OLLAMA_URL_DEFAULT        = getattr(_env, 'OLLAMA_URL',         os.environ.get('OLLAMA_URL',         'http://localhost:11434'))
+    _OLLAMA_URL_DEFAULT        = getattr(_env, 'OLLAMA_URL',         os.environ.get('OLLAMA_URL',         'http://127.0.0.1:11434'))
     _TRANSLATION_MODEL_DEFAULT = getattr(_env, 'TRANSLATION_MODEL',  os.environ.get('TRANSLATION_MODEL',  'translategemma:4b'))
     _CANONICAL_LANGUAGE_DEFAULT = getattr(_env, 'CANONICAL_LANGUAGE', os.environ.get('CANONICAL_LANGUAGE', ''))
 except ImportError:
     _ES_URL_DEFAULT            = os.environ.get('ES_URL',             'http://127.0.0.1:9200')
     _ES_INDEX_DEFAULT          = os.environ.get('ES_INDEX',           'course_catalog')
-    _OLLAMA_URL_DEFAULT        = os.environ.get('OLLAMA_URL',         'http://localhost:11434')
+    _OLLAMA_URL_DEFAULT        = os.environ.get('OLLAMA_URL',         'http://127.0.0.1:11434')
     _TRANSLATION_MODEL_DEFAULT = os.environ.get('TRANSLATION_MODEL',  'translategemma:4b')
     _CANONICAL_LANGUAGE_DEFAULT = os.environ.get('CANONICAL_LANGUAGE', '')
 

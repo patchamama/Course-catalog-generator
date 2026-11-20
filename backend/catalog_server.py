@@ -315,6 +315,16 @@ except ImportError:
     sys.exit(1)
 
 # Load config from env.py
+def _safe_exists(p) -> bool:
+    """Path.exists() that never raises. On Windows a network share that is offline or not permitted
+    for this account raises PermissionError / OSError (WinError 53, 5…) instead of returning False,
+    which used to crash the server at startup and the "search paths" list."""
+    try:
+        return Path(p).exists()
+    except OSError:
+        return False
+
+
 def _parse_base_paths(raw: str) -> list:
     """Parse a semicolon-separated path string into a list of resolved Paths.
     Automatically converts Windows-style paths (C:\\...) to WSL paths when running in WSL.
@@ -362,7 +372,7 @@ try:
     VLC_PATH = getattr(env, 'VLC_PATH', 'vlc')
     ES_URL     = getattr(env, 'ES_URL',     os.environ.get('ES_URL', ''))
     ES_INDEX   = getattr(env, 'ES_INDEX',   os.environ.get('ES_INDEX', 'course_catalog'))
-    OLLAMA_URL = getattr(env, 'OLLAMA_URL', os.environ.get('OLLAMA_URL', 'http://localhost:11434'))
+    OLLAMA_URL = getattr(env, 'OLLAMA_URL', os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434'))
     CANONICAL_LANGUAGE = getattr(env, 'CANONICAL_LANGUAGE', os.environ.get('CANONICAL_LANGUAGE', ''))
     TRANSLATION_MODEL  = getattr(env, 'TRANSLATION_MODEL',  os.environ.get('TRANSLATION_MODEL', 'translategemma:4b'))
     TRANSLATION_MODE   = getattr(env, 'TRANSLATION_MODE',   os.environ.get('TRANSLATION_MODE', 'background'))
@@ -380,7 +390,7 @@ except ImportError:
     VLC_PATH = 'vlc'
     ES_URL     = os.environ.get('ES_URL', '')
     ES_INDEX   = os.environ.get('ES_INDEX', 'course_catalog')
-    OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
+    OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434')
     CANONICAL_LANGUAGE = os.environ.get('CANONICAL_LANGUAGE', '')
     TRANSLATION_MODEL  = os.environ.get('TRANSLATION_MODEL', 'translategemma:4b')
     TRANSLATION_MODE   = os.environ.get('TRANSLATION_MODE', 'background')
@@ -1320,7 +1330,7 @@ def play_srt():
             yt_id = _extract_youtube_id(video_path)
         if yt_id:
             # Video unavailable locally — open in the web YouTube viewer
-            viewer_url = f'http://localhost:{PORT}/youtube-viewer?v={yt_id}&t={int(start_time)}'
+            viewer_url = f'http://127.0.0.1:{PORT}/youtube-viewer?v={yt_id}&t={int(start_time)}'
             log.info(f"YouTube viewer fallback: {viewer_url}")
             return jsonify({"status": "youtube_viewer", "url": viewer_url,
                             "youtube_id": yt_id, "time": start_time})
@@ -2440,8 +2450,11 @@ def _check_service_health(base_url: str, path: str, timeout: int = 3) -> bool:
 @app.route('/api/services/status')
 def services_status():
     """Return live running state of Elasticsearch and Ollama (bypasses retry throttle)."""
-    es_ok     = _check_service_health(ES_URL or 'http://127.0.0.1:9200', '/_cluster/health')
-    ollama_ok = _check_service_health(OLLAMA_URL, '/api/tags')
+    from concurrent.futures import ThreadPoolExecutor      # in parallel: see health() — ~2 s per closed port on Windows
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        f_es = pool.submit(_check_service_health, ES_URL or 'http://127.0.0.1:9200', '/_cluster/health')
+        f_ol = pool.submit(_check_service_health, OLLAMA_URL, '/api/tags')
+        es_ok, ollama_ok = f_es.result(), f_ol.result()
     return jsonify({'elasticsearch': es_ok, 'ollama': ollama_ok})
 
 @app.route('/api/services/<service>/<action>', methods=['POST'])
@@ -3166,11 +3179,16 @@ def ping():
 
 @app.route('/api/health')
 def health():
-    es_status = "not configured"
-    if ES_URL:
-        es = _get_es()
-        es_status = "ok" if es is not None else "unreachable"
-    ollama_url = _get_ollama()
+    # Probe both services AT ONCE. A refused connection to a closed port costs ~2 s on Windows, so probing
+    # Elasticsearch and Ollama one after the other (4 s) exceeded the 3 s the UI gives this endpoint and a
+    # perfectly healthy backend was shown as "unreachable" on the first load.
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=2) as _pool:
+        _f_es = _pool.submit(_get_es) if ES_URL else None
+        _f_ol = _pool.submit(_get_ollama)
+        es = _f_es.result() if _f_es else None
+        ollama_url = _f_ol.result()
+    es_status = "not configured" if not ES_URL else ("ok" if es is not None else "unreachable")
     ollama_models = _ollama_list_models() if ollama_url else []
     return jsonify({
         "status": "ok",
@@ -3545,7 +3563,7 @@ def tools_search_paths():
     global SEARCH_BASE_PATHS, SEARCH_BASE_PATH
     if request.method == 'GET':
         return jsonify({
-            "paths": [{"path": str(p), "exists": p.exists()} for p in SEARCH_BASE_PATHS]
+            "paths": [{"path": str(p), "exists": _safe_exists(p)} for p in SEARCH_BASE_PATHS]
         })
 
     if request.method == 'POST':
@@ -4993,8 +5011,9 @@ def main():
     DEBUG = args.debug
 
     for bp in SEARCH_BASE_PATHS:
-        if not bp.exists():
-            print(f"WARNING: Path '{bp}' does not exist.", file=sys.stderr)
+        if not _safe_exists(bp):
+            print(f"WARNING: Path '{bp}' does not exist or cannot be accessed "
+                  f"(offline network share / no permission?). It is skipped until it is reachable.", file=sys.stderr)
 
     print(f"\n{'='*60}")
     print("  Catalog — DMS Lite Backend")

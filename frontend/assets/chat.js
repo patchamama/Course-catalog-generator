@@ -428,7 +428,7 @@ function newConversation() {
 async function checkHealth() {
   try {
     const res = await fetch(`${apiUrl()}/api/health`, {
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) throw new Error('not ok');
     backendNotice.style.display = 'none';

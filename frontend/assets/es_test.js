@@ -2,7 +2,7 @@
 let SEARCH_MODE = 'es-semantic';
 
 function esUrl()     { return (document.getElementById('es-url').value     || 'http://127.0.0.1:9200').replace(/\/$/, ''); }
-function ollamaUrl() { return (document.getElementById('ollama-url')?.value || 'http://localhost:11434').replace(/\/$/, ''); }
+function ollamaUrl() { return (document.getElementById('ollama-url')?.value || 'http://127.0.0.1:11434').replace(/\/$/, ''); }
 function indexName() { return 'course_catalog'; }
 
 // ── Logging ─────────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ async function checkAPI() {
   const dot = document.getElementById('dot-api');
   const lbl = document.getElementById('lbl-api');
   try {
-    const r = await fetch(apiUrl() + '/api/health', { signal: AbortSignal.timeout(3000) });
+    const r = await fetch(apiUrl() + '/api/health', { signal: AbortSignal.timeout(10000) });
     const d = await r.json();
     dot.className = 'dot green';
     lbl.textContent = 'API: ok (ES: ' + (d.elasticsearch || '?') + ')';

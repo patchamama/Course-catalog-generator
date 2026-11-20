@@ -72,7 +72,7 @@ try:
     CANONICAL_LANGUAGE = getattr(env, 'CANONICAL_LANGUAGE', os.environ.get('CANONICAL_LANGUAGE', ''))
     TRANSLATION_MODEL  = getattr(env, 'TRANSLATION_MODEL',  os.environ.get('TRANSLATION_MODEL', 'translategemma:4b'))
     TRANSLATION_MODE   = getattr(env, 'TRANSLATION_MODE',   os.environ.get('TRANSLATION_MODE', 'background'))
-    OLLAMA_URL         = getattr(env, 'OLLAMA_URL',          os.environ.get('OLLAMA_URL', 'http://localhost:11434'))
+    OLLAMA_URL         = getattr(env, 'OLLAMA_URL',          os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434'))
 except ImportError:
     SEARCH_BASE_PATH = Path(os.environ.get('SEARCH_BASE_PATH', '.'))
     MAX_FILE_SIZE_MB = int(os.environ.get('MAX_FILE_SIZE_MB', '50'))
@@ -82,7 +82,7 @@ except ImportError:
     CANONICAL_LANGUAGE = os.environ.get('CANONICAL_LANGUAGE', '')
     TRANSLATION_MODEL  = os.environ.get('TRANSLATION_MODEL', 'translategemma:4b')
     TRANSLATION_MODE   = os.environ.get('TRANSLATION_MODE', 'background')
-    OLLAMA_URL         = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
+    OLLAMA_URL         = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434')
 
 if not SEARCHABLE_EXTENSIONS:
     SEARCHABLE_EXTENSIONS = {
