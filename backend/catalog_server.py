@@ -1113,12 +1113,59 @@ if _socketio_available:
         t.start()
 
 
+def resolve_fs_path(path_str: str) -> Optional[Path]:
+    """The real on-disk path for a path stored in the index, tolerating Unicode normalisation.
+
+    macOS writes file names decomposed (NFD: "a" + U+0308 for "ä"); Windows / Linux use the composed
+    form (NFC: U+00E4). They LOOK identical but are different strings, so a path indexed on a Mac and
+    imported on Windows ("Pra\\u0308sentationen") is "not found" even though the file is right there.
+    Tries the path as given, then NFC, then NFD, then walks it component by component comparing the
+    NFC forms of the names (covers a mix, e.g. an NFD folder inside an NFC one). None if nothing matches.
+    """
+    import unicodedata
+    if not path_str:
+        return None
+    seen, tried = set(), []
+    for form in (None, 'NFC', 'NFD'):
+        s = path_str if form is None else unicodedata.normalize(form, path_str)
+        if s not in seen:
+            seen.add(s)
+            tried.append(s)
+    for s in tried:
+        try:
+            if os.path.exists(s):
+                return Path(s)
+        except (OSError, ValueError):
+            continue
+    try:                                            # component-wise walk
+        parts = Path(unicodedata.normalize('NFC', path_str)).parts
+        if not parts:
+            return None
+        cur = Path(parts[0])
+        for part in parts[1:]:
+            nxt = cur / part
+            if os.path.exists(nxt):
+                cur = nxt
+                continue
+            want = unicodedata.normalize('NFC', part)
+            match = next((n for n in os.listdir(cur) if unicodedata.normalize('NFC', n) == want), None)
+            if match is None:
+                return None
+            cur = cur / match
+        return cur
+    except (OSError, ValueError):
+        return None
+
+
 def validate_path(path_str: str) -> Optional[Path]:
     """Validate that path is within any of SEARCH_BASE_PATHS (security).
     NOTE: Flask already URL-decodes request.args, so path_str is the raw path string.
     """
     try:
-        p = Path(path_str).resolve()
+        real = resolve_fs_path(path_str)            # NFC / NFD tolerant (paths indexed on a Mac)
+        if real is None:
+            return None
+        p = real.resolve()
         for base in SEARCH_BASE_PATHS:
             try:
                 p.relative_to(base.resolve())
@@ -1141,6 +1188,7 @@ def validate_path_for_vlc(path_str: str) -> Optional[Path]:
         p = Path(path_str)
         if not p.is_absolute():
             return None
+        p = resolve_fs_path(path_str) or p          # NFC / NFD tolerant
         if not p.is_file():
             return None
         ext = p.suffix.lstrip('.').lower()
@@ -1216,6 +1264,10 @@ def file_info():
     try:
         p = Path(path_str)
         info['absolute'] = p.is_absolute()
+        real = resolve_fs_path(path_str)            # NFC / NFD tolerant
+        if real is not None and str(real) != str(p):
+            info['resolved'] = str(real)            # the name on disk differs only by Unicode normalisation
+            p = real
         info['exists'] = p.exists()
         info['is_file'] = p.is_file()
         if info['is_file']:
@@ -1257,7 +1309,7 @@ def serve_file_text():
     # Try UNC/absolute path first, fall back to SEARCH_BASE_PATH restriction
     p = None
     try:
-        candidate = Path(path_str)
+        candidate = resolve_fs_path(path_str) or Path(path_str)      # NFC / NFD tolerant
         if candidate.is_absolute() and candidate.is_file():
             p = candidate
     except (ValueError, OSError):
@@ -3917,10 +3969,16 @@ def _under(path: str, folder: str) -> bool:
 
 def _prefix_query(folder: str) -> dict:
     """ES filter matching every doc whose `path` is inside `folder` (exact or folder + separator)."""
+    import unicodedata
     f = str(folder).rstrip('\\/')
     sep = '\\' if '\\' in f else '/'
-    return {"bool": {"should": [{"term": {"path": f}}, {"prefix": {"path": f + sep}}],
-                     "minimum_should_match": 1}}
+    # A folder typed here is usually NFC, but a path indexed on a Mac is stored NFD (and vice versa):
+    # match both spellings, otherwise "move this folder" would silently update 0 chunks.
+    forms = {f, unicodedata.normalize('NFC', f), unicodedata.normalize('NFD', f)}
+    should = []
+    for x in sorted(forms):
+        should += [{"term": {"path": x}}, {"prefix": {"path": x + sep}}]
+    return {"bool": {"should": should, "minimum_should_match": 1}}
 
 
 @app.route('/api/tools/scan-paths', methods=['GET', 'POST'])
@@ -4184,6 +4242,19 @@ def _clean_path(value) -> str:
     return v
 
 
+def _windows_drive_letters() -> list:
+    """Mounted drive letters WITHOUT touching the drives. `os.path.exists('T:\\\\')` on a mapped network
+    drive that is disconnected can block for many seconds (and the picker asks for all 26 letters);
+    GetLogicalDrives only reads the OS table."""
+    import string
+    try:
+        import ctypes
+        mask = ctypes.windll.kernel32.GetLogicalDrives()
+        return [d for i, d in enumerate(string.ascii_uppercase) if mask & (1 << i)]
+    except Exception:                      # not Windows / ctypes unavailable → slow but safe fallback
+        return [d for d in string.ascii_uppercase if os.path.exists(f'{d}:\\')]
+
+
 def list_subdirs(path: str = '') -> dict:
     """Folder-picker data: the sub-folders of `path` (home when empty). Dirs only, hidden ones skipped."""
     path = _clean_path(path)
@@ -4205,9 +4276,7 @@ def list_subdirs(path: str = '') -> dict:
         pass
     roots = [{'name': 'Home', 'path': str(Path.home())}]
     if sys.platform == 'win32':
-        import string
-        roots += [{'name': f'{d}:\\', 'path': f'{d}:\\'} for d in string.ascii_uppercase
-                  if os.path.exists(f'{d}:\\')]
+        roots += [{'name': f'{d}:\\', 'path': f'{d}:\\'} for d in _windows_drive_letters()]
     else:
         roots.append({'name': '/', 'path': '/'})
         if os.path.isdir('/Volumes'):
