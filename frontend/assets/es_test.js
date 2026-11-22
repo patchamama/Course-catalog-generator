@@ -1108,6 +1108,8 @@ async function doAsk() {
   // Apply file type filter (same panel as search)
   const checkedExts = [...document.querySelectorAll('#ext-filter-grid input:checked')].map(c => c.value);
   if (checkedExts.length) params += `&types=${checkedExts.join(',')}`;
+  const twoStage = document.getElementById('ask-two-stage')?.checked !== false;
+  params += `&two_stage=${twoStage}`;
 
   // Reset debug panel
   document.getElementById('ask-debug').style.display = 'none';
@@ -1124,7 +1126,7 @@ async function doAsk() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             q, k, mode: askMode, lang: lang || '', model: model || llmCfg.model,
-            types: checkedExts.join(','), llm: llmCfg,
+            types: checkedExts.join(','), two_stage: twoStage, llm: llmCfg,
           }),
           signal: _askController.signal,
         })
@@ -3213,3 +3215,59 @@ async function mgApplyModel(model) {
     }
   } catch (err) { out.innerHTML = `<span style="color:var(--red)">${escapeHtml(err.message)}</span>`; btn.disabled = false; }
 }
+
+;(function(){ try { const v = localStorage.getItem('ask-two-stage'); const el = document.getElementById('ask-two-stage'); if (el && v === '0') el.checked = false; } catch(e){} })();
+
+// ── GitHub backups (releases of a private repo) ──────────────────────────────────────────────
+function _ghBody(extra) {
+  const repo = document.getElementById('gh-repo').value.trim();
+  try { localStorage.setItem('cc_gh_repo', repo); } catch (e) {}
+  return Object.assign({ repo, token: document.getElementById('gh-token').value.trim(),
+                         allow_public: document.getElementById('gh-public').checked }, extra || {});
+}
+async function _ghPost(url, body) {
+  const r = await fetch(apiUrl() + url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+  return d;
+}
+function _ghSay(msg, bad) { const el = document.getElementById('gh-status'); el.style.color = bad ? 'var(--red)' : ''; el.textContent = msg; }
+async function ghCheck() {
+  _ghSay('Checking…');
+  try {
+    const d = await _ghPost('/api/gh/check', _ghBody());
+    _ghSay(`✓ ${d.user} · ${d.repo} · ${d.private ? 'private' : '⚠ PUBLIC'} · ${d.can_push ? 'can write' : '⚠ read-only token'} · token from ${d.token_source}`, !d.can_push);
+  } catch (e) { _ghSay('✗ ' + e.message, true); }
+}
+async function ghList() {
+  const box = document.getElementById('gh-list');
+  _ghSay('Loading backups…');
+  try {
+    const d = await _ghPost('/api/gh/list', _ghBody());
+    const e = escapeHtml;
+    _ghSay(`${d.backups.length} backup(s), newest first`);
+    box.innerHTML = !d.backups.length ? '<div class="mo-sub">No backups in this repository yet.</div>' : d.backups.map(b =>
+      `<div class="mo-row"><div style="flex:1"><b>${e(b.created ? b.created.replace('T', ' ').replace('Z', '') : '')}</b> · ${e(b.size)}` +
+      `${b.docs ? ' · ' + b.docs + ' chunks' : ''}${b.embedding_model ? ' · ' + e(b.embedding_model) : ''}${b.os ? ' · ' + e(b.os) : ''}` +
+      `${b.note ? '<div class="mo-sub">' + e(b.note) + '</div>' : ''}</div>` +
+      `<button type="button" class="tool-run-btn" style="margin:0 4px;" onclick='ghImport(${JSON.stringify(b.asset_id)},${JSON.stringify(b.name)},${JSON.stringify(b.created || "")})'>📥 Import</button>` +
+      `<button type="button" class="tool-run-btn" style="margin:0;background:var(--red);" onclick='ghDelete(${JSON.stringify(b.release_id)},${JSON.stringify(b.created || "")})'>🗑</button></div>`).join('');
+  } catch (err) { _ghSay('✗ ' + err.message, true); box.innerHTML = ''; }
+}
+async function ghUpload() {
+  const note = prompt('Optional note for this backup (e.g. "after indexing ELO docs"):', '');
+  if (note === null) return;
+  if (!confirm('Create a new export (Elasticsearch is stopped while it is copied) and upload it to GitHub?')) return;
+  try { await _mgStart('/api/gh/export-upload', _ghBody({ note })); } catch (e) { _ghSay('✗ ' + e.message, true); }
+}
+async function ghImport(assetId, name, created) {
+  const backup = document.getElementById('mg-import-backup').checked;
+  if (!confirm(`REPLACE all Elasticsearch data on this machine with the GitHub backup from ${created}?\n\n` +
+               (backup ? 'A safety backup of the current index is made first.' : '⚠ NO safety backup — the current index will be lost.'))) return;
+  try { await _mgStart('/api/gh/import', _ghBody({ asset_id: assetId, name, backup_current: backup })); } catch (e) { _ghSay('✗ ' + e.message, true); }
+}
+async function ghDelete(releaseId, created) {
+  if (!confirm(`Delete the GitHub backup from ${created}? This cannot be undone.`)) return;
+  try { await _ghPost('/api/gh/delete', _ghBody({ release_id: releaseId })); ghList(); } catch (e) { _ghSay('✗ ' + e.message, true); }
+}
+;(function(){ try { const r = localStorage.getItem('cc_gh_repo'); const el = document.getElementById('gh-repo'); if (el && r) el.value = r; } catch(e){} })();

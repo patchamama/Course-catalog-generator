@@ -2059,6 +2059,16 @@ def models_ollama_action(action):
     return jsonify({"ok": True, "action": action, "name": name})
 
 
+def _doc_key(path: str) -> str:
+    """Identity of a document regardless of its extension: same folder + same file name stem
+    (Handbuch.pdf / Handbuch.md / Handbuch.html are one document). NFC + case-folded."""
+    import unicodedata
+    p = unicodedata.normalize('NFC', str(path or '')).replace(chr(92), '/').lower()
+    d, _, name = p.rpartition('/')
+    stem = name.rsplit('.', 1)[0] if '.' in name else name
+    return d + '/' + stem
+
+
 def _rag_retrieve(question: str, lang: str, k: int = 5, mode: str = 'es-hybrid',
                   filter_exts: set = None, extra_queries: list = None,
                   rerank: bool = True, rerank_query: str = None, info: dict = None) -> list:
@@ -2189,7 +2199,8 @@ def _rag_retrieve(question: str, lang: str, k: int = 5, mode: str = 'es-hybrid',
     seen_file_paths: set = set()
     pool = []
     for doc in sorted(docs.values(), key=lambda d: rrf_score[d['id']], reverse=True):
-        fp = doc.get('path') or doc['id']
+        # one entry per DOCUMENT: the same name in the same folder with another extension is a copy
+        fp = _doc_key(doc.get('path')) if doc.get('path') else doc['id']
         if fp not in seen_file_paths:
             seen_file_paths.add(fp)
             doc['rrf'] = round(rrf_score[doc['id']], 6)
@@ -2682,14 +2693,15 @@ def _translate_query(text: str, target_lang: str) -> Optional[str]:
 
 
 # Languages the search terms are translated into (the corpus language). env.py / env var
-# RAG_TRANSLATE_QUERY_TO, comma-separated, '' disables translation. Default: German.
+# RAG_TRANSLATE_QUERY_TO, comma-separated, '' disables translation. Default: German + English
+# (measured: original + de + en fused, then reranked, beats replacing the question by its German version).
 _QUERY_LANG_NAMES = {'de': 'German', 'en': 'English', 'es': 'Spanish', 'fr': 'French'}
 try:
     _QUERY_TRANSLATE_TO = [x.strip().lower() for x in str(
-        getattr(env, 'RAG_TRANSLATE_QUERY_TO', os.environ.get('RAG_TRANSLATE_QUERY_TO', 'de'))).split(',')
+        getattr(env, 'RAG_TRANSLATE_QUERY_TO', os.environ.get('RAG_TRANSLATE_QUERY_TO', 'de,en'))).split(',')
         if x.strip().lower() in _QUERY_LANG_NAMES]
 except NameError:
-    _QUERY_TRANSLATE_TO = ['de']
+    _QUERY_TRANSLATE_TO = ['de', 'en']
 
 
 def _multilang_query_prompt(question: str) -> str:
@@ -3022,6 +3034,7 @@ def es_search():
         return jsonify({"error": f"Elasticsearch search error: {e}"}), 500
 
     # ── Format results (same shape as /api/search) ───────────────────────────
+    _dedupe_docs = request.args.get('dedupe', '1') != '0'    # same name+folder, other extension = one document
     seen_paths: dict = {}   # path → result entry (merge chunks from same file)
 
     for hit in resp["hits"]["hits"]:
@@ -3043,12 +3056,16 @@ def es_search():
             match_entry["srt_time"] = src["srt_start_time"]
 
         path_key = src.get("path", "")
-        if path_key in seen_paths:
+        if _dedupe_docs:
+            path_key = _doc_key(path_key) if path_key else path_key
+        if path_key in seen_paths and _dedupe_docs and seen_paths[path_key]["path"] != src.get("path", ""):
+            seen_paths[path_key].setdefault("also_as", []).append(src.get("ext", ""))   # copy in another format
+        elif path_key in seen_paths:
             seen_paths[path_key]["matches"].append(match_entry)
             seen_paths[path_key]["match_count"] += 1
         else:
             seen_paths[path_key] = {
-                "path":        path_key,
+                "path":        src.get("path", ""),
                 "file":        src.get("filename", ""),
                 "rel_path":    src.get("rel_path", ""),
                 "type":        src.get("ext", ""),
@@ -4482,6 +4499,159 @@ def migrate_model_apply():
 def migrate_model_status():
     _loopback_only()
     return jsonify(dict(_model_apply))
+
+
+# ─── GitHub backups of the Elasticsearch export (private repo, one release per backup) ───────────────
+
+def _gh_mod():
+    import importlib
+    _d = str(Path(__file__).parent)
+    if _d not in sys.path:
+        sys.path.insert(0, _d)
+    return importlib.import_module('gh_backup')
+
+
+def _gh_args():
+    """(gh module, token, repo, body). The token comes from the request body only — never from the URL, never logged."""
+    gh = _gh_mod()
+    body = request.get_json(silent=True) or {}
+    token, source = gh.find_token(str(body.get('token') or ''))
+    if not token:
+        raise gh.GhError('No GitHub token: paste one, set GITHUB_TOKEN, or log in with "gh auth login".')
+    return gh, token, source, body
+
+
+@app.route('/api/gh/check', methods=['POST'])
+def gh_check():
+    _loopback_only()
+    gh = _gh_mod()
+    try:
+        gh_, token, source, body = _gh_args()
+        info = gh.check(token, body.get('repo', ''))
+        info['token_source'] = source
+        return jsonify(info)
+    except gh.GhError as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/gh/list', methods=['POST'])
+def gh_list():
+    _loopback_only()
+    gh = _gh_mod()
+    try:
+        _g, token, _s, body = _gh_args()
+        return jsonify({'backups': gh.list_backups(token, body.get('repo', ''))})
+    except gh.GhError as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/gh/delete', methods=['POST'])
+def gh_delete():
+    _loopback_only()
+    gh = _gh_mod()
+    try:
+        _g, token, _s, body = _gh_args()
+        gh.delete(token, body.get('repo', ''), int(body.get('release_id') or 0))
+        return jsonify({'ok': True})
+    except (gh.GhError, ValueError) as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/gh/export-upload', methods=['POST'])
+def gh_export_upload():
+    """Export the index (same as "Create export"), then upload the archive as a new GitHub release."""
+    _loopback_only()
+    gh = _gh_mod()
+    try:
+        _g, token, _s, body = _gh_args()
+        repo = gh.clean_repo(body.get('repo', ''))
+        info = gh.check(token, repo)                       # fail early, BEFORE stopping Elasticsearch
+        if not info['can_push']:
+            return jsonify({'error': f'This token cannot write to {repo}.'}), 400
+        if not info['private'] and not body.get('allow_public'):
+            return jsonify({'error': f'{repo} is PUBLIC — an index contains the text of your documents. '
+                                     'Use a private repository, or tick "I understand, upload to a public repo".'}), 400
+    except gh.GhError as e:
+        return jsonify({'error': str(e)}), 400
+    busy = _migrate_busy()
+    if busy:
+        return jsonify({'error': busy}), 409
+    mg = _migrate_mod()
+    upload_step = 'Upload to GitHub'
+    job = mg.Job('export', list(mg.EXPORT_STEPS) + [upload_step])
+    extra = {'embedding_model': _EMBEDDING_MODEL, 'app': 'course-catalog'}
+    note = str(body.get('note') or '')[:200]
+    allow_public = bool(body.get('allow_public'))
+
+    def _run():
+        mg.export_index(job, _migrate_cfg(), _default_exports_dir(), ES_URL or 'http://127.0.0.1:9200',
+                        ES_INDEX, extra, _scanned_folder_hints())
+        if job.status != 'done':
+            return
+        job.status = 'running'
+        job.start(upload_step, repo)
+        try:
+            manifest = {}
+            try:
+                manifest = json.loads(Path(job.result['manifest']).read_text(encoding='utf-8'))
+            except Exception:  # noqa: BLE001
+                pass
+            res = gh.upload(token, repo, job.result['archive'], manifest, note, allow_public,
+                            progress=lambda m: job.detail(upload_step, m))
+            job.result['github'] = res
+            job.ok(upload_step, f"{res['size']} → {res['tag']}")
+            job.finish(True)
+        except Exception as e:  # noqa: BLE001
+            job.fail(upload_step, str(e))
+            job.finish(False, str(e))
+
+    threading.Thread(target=_run, name=job.id, daemon=True).start()
+    return jsonify({'job_id': job.id})
+
+
+@app.route('/api/gh/import', methods=['POST'])
+def gh_import():
+    """Download one backup from GitHub, then import it exactly like a local archive."""
+    _loopback_only()
+    gh = _gh_mod()
+    try:
+        _g, token, _s, body = _gh_args()
+        repo = gh.clean_repo(body.get('repo', ''))
+        asset_id = int(body.get('asset_id') or 0)
+        name = str(body.get('name') or 'es_backup.tgz')
+    except (gh.GhError, ValueError) as e:
+        return jsonify({'error': str(e)}), 400
+    if not asset_id:
+        return jsonify({'error': 'Choose a backup first.'}), 400
+    if not re.fullmatch(r"[\w.\- ()\[\]]+", name) or not name.lower().endswith(('.tgz', '.tar.gz')):
+        return jsonify({'error': 'Unexpected backup file name.'}), 400
+    busy = _migrate_busy()
+    if busy:
+        return jsonify({'error': busy}), 409
+    mg = _migrate_mod()
+    dl_step = 'Download from GitHub'
+    job = mg.Job('import', [dl_step] + list(mg.IMPORT_STEPS))
+    backup_current = bool(body.get('backup_current', True))
+
+    def _run():
+        global _es_client, _es_last_failed
+        try:
+            job.start(dl_step, name)
+            dest = Path(_default_exports_dir()) / ('gh_' + name)
+            try:
+                gh.download(token, repo, asset_id, dest, progress=lambda m: job.detail(dl_step, m))
+            except Exception as e:  # noqa: BLE001
+                job.fail(dl_step, str(e))
+                job.finish(False, str(e))
+                return
+            job.ok(dl_step, dest.name)
+            mg.import_index(job, _migrate_cfg(), str(dest), ES_URL or 'http://127.0.0.1:9200', ES_INDEX,
+                            _default_exports_dir(), backup_current)
+        finally:
+            _es_client, _es_last_failed = None, 0.0
+
+    threading.Thread(target=_run, name=job.id, daemon=True).start()
+    return jsonify({'job_id': job.id})
 
 
 @app.route('/api/migrate/remap', methods=['POST'])

@@ -327,6 +327,11 @@
           <option value="en">English (en)</option>
         </select>
       </div>
+      <div style="min-width:170px;">
+        <label title="Reformulates the question into search terms and translates them to German + English, searches with all of them (BM25 + vectors, fused), reranks, and only then asks the AI. One click instead of Search → Ask.">
+          <input type="checkbox" id="ask-two-stage" checked style="width:auto;margin-right:4px;" onchange="try{localStorage.setItem('ask-two-stage',this.checked?'1':'0')}catch(e){}" />
+          Generate RAG query (translate DE/EN)</label>
+      </div>
       <div style="min-width:80px;">
         <label>Context chunks (k)</label>
         <input type="number" id="ask-k" value="5" min="1" max="15"
@@ -847,6 +852,26 @@
         </div>
         <div class="tool-check"><input type="checkbox" id="mg-import-backup" checked><label for="mg-import-backup">Keep a safety backup of the current index first (recommended)</label></div>
         <button class="tool-run-btn" id="mg-import-btn" onclick="mgStartImport()">📥 Import &amp; replace Elasticsearch data</button>
+
+        <div class="mo-sec" style="margin-top:14px;">☁ GitHub backups (private repository)</div>
+        <div class="tool-row">
+          <div style="flex:1;min-width:180px;">
+            <label for="gh-repo">Repository (owner/name)</label>
+            <input type="text" id="gh-repo" style="width:100%;" spellcheck="false" placeholder="my-user/es-backups" />
+          </div>
+          <div style="flex:1;min-width:180px;">
+            <label for="gh-token">Token <span class="mo-sub">(empty = GITHUB_TOKEN or <code>gh</code> login; never saved)</span></label>
+            <input type="password" id="gh-token" style="width:100%;" autocomplete="off" placeholder="ghp_… / github_pat_…" />
+          </div>
+        </div>
+        <div class="tool-check"><input type="checkbox" id="gh-public"><label for="gh-public">I understand, allow a PUBLIC repo (the index contains the text of your documents!)</label></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;">
+          <button type="button" class="tool-run-btn" style="margin:0;" onclick="ghCheck()">✔ Check token</button>
+          <button type="button" class="tool-run-btn" style="margin:0;" onclick="ghList()">↻ List backups</button>
+          <button type="button" class="tool-run-btn" style="margin:0;" id="gh-up-btn" onclick="ghUpload()">⬆ Export &amp; upload new backup</button>
+        </div>
+        <div id="gh-status" class="mo-sub"></div>
+        <div id="gh-list" class="mo-wrap" style="margin-bottom:10px;"></div>
 
         <div id="mg-job" style="margin-top:12px;"></div>
         <div id="mg-model" style="margin-top:12px;"></div>
